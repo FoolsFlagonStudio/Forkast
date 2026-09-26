@@ -1,6 +1,6 @@
 # Recipe App — Entity Model
 
-Sep 22, 2026 · @Someone
+Sep 22, 2026 · @Evan-Roberts-808
 
 Locked entity design for the Java/Spring Boot recipe and meal-planning backend: 12 entities covering user preferences, recipe/ingredient data, and meal-plan generation.
 
