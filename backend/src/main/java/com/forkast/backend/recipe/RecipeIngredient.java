@@ -73,7 +73,6 @@ public class RecipeIngredient {
 
     // --- ingredient matching ---
 
-    /** Link this line to a catalog ingredient and clear the review flag. */
     public void matchIngredient(Ingredient ingredient) {
         if (ingredient == null) {
             throw new IllegalArgumentException("ingredient is required");
@@ -82,7 +81,6 @@ public class RecipeIngredient {
         this.needsReview = false;
     }
 
-    /** Remove a bad match and send the line back for review. */
     public void unmatchIngredient() {
         this.ingredient = null;
         this.needsReview = true;
