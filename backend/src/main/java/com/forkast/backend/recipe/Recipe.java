@@ -1,21 +1,30 @@
 package com.forkast.backend.recipe;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "recipes")
 public class Recipe {
+
+    @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("stepNumber ASC")
+    private List<RecipeStep> steps = new ArrayList<>();
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -125,6 +134,11 @@ public class Recipe {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public void addStep(RecipeStep step) {
+        steps.add(step);
+        step.setRecipe(this);
     }
 
 }
