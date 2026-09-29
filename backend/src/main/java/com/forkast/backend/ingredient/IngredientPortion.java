@@ -2,7 +2,6 @@ package com.forkast.backend.ingredient;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-import com.forkast.backend.ingredient.Ingredient;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
