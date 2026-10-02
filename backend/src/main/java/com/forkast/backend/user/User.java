@@ -1,5 +1,7 @@
 package com.forkast.backend.user;
 
+import static com.forkast.backend.common.ValidationUtils.requireText;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -19,40 +21,50 @@ public class User {
 
     // ---------- id ----------
 
-    @Id 
+    @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     // ---------- columns ----------
 
-    @Column(name="first_name", nullable=false)
+    @Column(name = "first_name", nullable = false)
     private String firstName;
 
-    @Column(name="last_name", nullable=false)
+    @Column(name = "last_name", nullable = false)
     private String lastName;
 
-    @Column(nullable = false, unique=true)
+    @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(name="password_hash", nullable=false)
+    @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
-    @Column(name="is_premium", nullable=false)
+    @Column(name = "is_premium", nullable = false)
     private boolean premium = false;
+
+    @Column(name = "is_verified", nullable = false)
+    private boolean verified = false;
+
+    @Column(name = "password_changed_at")
+    private Instant passwordChangedAt;
+
+    @Column(name = "last_login_at")
+    private Instant lastLoginAt;
 
     // ---------- timestamps ----------
 
-    @CreationTimestamp 
-    @Column(name = "created_at", nullable=false, updatable=false)
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    @UpdateTimestamp 
-    @Column(name = "updated_at", nullable=false)
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
     // ---------- constructors ----------
 
-    protected User() {}
+    protected User() {
+    }
 
     public User(String firstName, String lastName, String email, String passwordHash) {
         this.firstName = firstName.trim();
@@ -63,16 +75,76 @@ public class User {
 
     // ---------- getters / setters ----------
 
-    public UUID getId() {return id;}
-    public String getFirstName() { return firstName; }
-    public void setFirstName(String firstName) { this.firstName = firstName.trim(); }
-    public String getLastName() { return lastName; }
-    public void setLastName(String lastName) { this.lastName = lastName.trim(); }
-    public String getEmail() { return email; }
-    public String getPasswordHash() { return passwordHash; }
-    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
-    public boolean isPremium() { return premium; }
-    public void setPremium(boolean premium) { this.premium = premium; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
+    public UUID getId() {
+        return id;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName.trim();
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName.trim();
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void changePassword(String newPasswordHash) {
+        this.passwordHash = requireText(newPasswordHash, "passwordHash");
+        this.passwordChangedAt = Instant.now();
+    }
+
+    public void markVerified() {
+        this.verified = true;
+    }
+
+    public void recordLogin() {
+        this.lastLoginAt = Instant.now();
+    }
+
+    public boolean isVerified() {
+        return verified;
+    }
+
+    public Instant getPasswordChangedAt() {
+        return passwordChangedAt;
+    }
+
+    public Instant getLastLoginAt() {
+        return lastLoginAt;
+    }
+
+    public boolean isPremium() {
+        return premium;
+    }
+
+    public void setPremium(boolean premium) {
+        this.premium = premium;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void changeEmail(String newEmail) {
+        this.email = requireText(newEmail, "email").toLowerCase();
+    }
 }
