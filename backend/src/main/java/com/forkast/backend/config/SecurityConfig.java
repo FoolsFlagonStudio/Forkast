@@ -16,7 +16,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import com.forkast.backend.auth.JwtAuthenticationFilter;
 import com.forkast.backend.user.UserRepository;
 
-
 import com.forkast.backend.auth.JwtAuthenticationFilter;
 import com.forkast.backend.user.UserRepository;
 
@@ -50,6 +49,7 @@ public class SecurityConfig {
                                 .logout(logout -> logout.disable())
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/api/dietary-labels").permitAll()
                                                 .requestMatchers(HttpMethod.POST, PUBLIC_POST_ROUTES).permitAll()
                                                 .requestMatchers("/error").permitAll()
                                                 .anyRequest().authenticated())
