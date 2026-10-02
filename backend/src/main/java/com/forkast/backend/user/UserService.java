@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.forkast.backend.common.exception.ApiException;
 import com.forkast.backend.user.dto.DeleteAccountRequest;
+import com.forkast.backend.user.dto.UpdateUserRequest;
 import com.forkast.backend.user.dto.UserResponse;
 
 @Service
@@ -47,6 +48,22 @@ public class UserService {
         }
 
         userRepository.delete(user);
+    }
+
+    @Transactional
+    public UserResponse updateProfile(UUID userId, UpdateUserRequest request) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> ApiException.notFound("User not found."));
+
+        if (request.firstName() != null) {
+            user.setFirstName(request.firstName());
+        }
+        if (request.lastName() != null) {
+            user.setLastName(request.lastName());
+        }
+
+        return toResponse(user);
     }
 
 }
