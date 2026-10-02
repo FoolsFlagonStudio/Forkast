@@ -4,7 +4,7 @@ A mobile meal planner that builds your weekly recipes and grocery list around yo
 
 Users set a weekly budget, household size, dietary restrictions, and optional calorie/macro targets. Each week Forkast generates a meal plan and an aggregated grocery list priced to fit that budget.
 
-> **Status:** early development. The backend data model, repositories, and Flyway migrations are complete; services, auth, and API endpoints are next. The data pipeline, frontend, and mobile app have not been started.
+> **Status:** early development. The backend data model, Flyway migrations, and authentication are complete; user preferences and recipe endpoints are next. The data pipeline, frontend, and mobile app have not been started.
 
 ## How It Fits Together
 
@@ -49,7 +49,7 @@ recipe-scrapers  ── POST ──▶  parse, match, classify   ◀── REST 
 - [x] Database connection (Supabase)
 - [x] Data model (16 tables)
 - [x] Flyway migrations
-- [ ] Auth (signup, login, JWT + refresh tokens)
+- [x] Auth (signup, login, JWT + refresh tokens)
 - [ ] User and preferences endpoints
 - [ ] Recipe data pipeline
 - [ ] Meal plan generator

@@ -2,7 +2,7 @@
 
 Spring Boot API for Forkast. It owns all data access: recipes, ingredient matching, nutrition, pricing, dietary labels, meal plan generation, and grocery lists.
 
-> **Status:** the data model and repositories are complete, and the schema is managed by Flyway (currently at V1). The only live endpoint is `GET /api/health`.
+> **Status:** the data model, Flyway migrations (V1 to V3), and authentication are complete. Live endpoints: `GET /api/health`, the 11 `/api/auth/*` routes, and `GET`/`DELETE /api/users/me`.
 
 ## Local Setup
 
@@ -23,6 +23,9 @@ spring.datasource.password=<db-password>
 
 spring.jpa.hibernate.ddl-auto=validate
 spring.jpa.show-sql=true
+
+# Generate with: openssl rand -base64 32
+forkast.auth.jwt-secret=<base64 secret, at least 32 bytes>
 ```
 
 The committed `application.properties` contains:
@@ -30,6 +33,11 @@ The committed `application.properties` contains:
 ```properties
 spring.profiles.active=local
 spring.jpa.open-in-view=false
+
+forkast.auth.access-token-ttl=15m
+forkast.auth.refresh-token-ttl=90d
+forkast.auth.code-ttl=15m
+forkast.auth.code-max-attempts=5
 ```
 
 Notes:
@@ -37,6 +45,8 @@ Notes:
 - Use Supabase's **Session pooler** connection. The direct connection is IPv6-only on the free tier, and the transaction pooler conflicts with JDBC prepared statements.
 - Disable Supabase's Data API. This backend owns all data access.
 - `ddl-auto` must stay `validate`. Flyway owns the schema; Hibernate only checks that entities match it.
+- The app refuses to start if `forkast.auth.jwt-secret` is missing or shorter than 32 bytes.
+- The `local` profile enables `LoggingEmailService`, which prints verification and reset codes to the console instead of sending email. Without the `local` profile there is no email service yet, so the app will not start.
 
 ### Run
 
@@ -53,9 +63,11 @@ On startup, Flyway applies any pending migrations to an empty database, so no ma
 
 The schema is defined by versioned SQL migrations in `src/main/resources/db/migration/`:
 
-| Migration                | Contents                                              |
-| ------------------------ | ----------------------------------------------------- |
-| `V1__initial_schema.sql` | All 16 tables, constraints, indexes, and foreign keys |
+| Migration                      | Contents                                                                                              |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `V1__initial_schema.sql`       | All 16 domain tables, constraints, indexes, and foreign keys                                          |
+| `V2__auth.sql`                 | `users.is_verified`, `password_changed_at`, `last_login_at`; `refresh_tokens` and `auth_codes` tables |
+| `V3__cascade_user_deletes.sql` | Foreign keys to `users` (and their children) cascade on delete, for account deletion                  |
 
 On startup, Flyway runs any migrations not yet recorded in the `flyway_schema_history` table, in version order. Hibernate then runs with `ddl-auto=validate` and refuses to start if an entity doesn't match the schema.
 
@@ -80,15 +92,22 @@ Drop every table in `public`, including `flyway_schema_history`, then restart. F
 
 ```
 src/main/java/com/forkast/backend/
-├── common/       shared helpers (ValidationUtils)
+├── auth/         AuthController, AuthService, TokenService, AuthCodeService,
+│                 JwtAuthenticationFilter, AuthProperties, AuthenticatedUser,
+│                 RefreshToken, AuthCode, AuthCodeType + repositories, dto/
+├── common/       ValidationUtils, TokenHasher, MessageResponse,
+│                 exception/ApiException, exception/GlobalExceptionHandler
+├── config/       SecurityConfig, SecurityErrorHandler, JwtConfig
 ├── diet/         DietaryLabel, DietaryLabelRepository
 ├── favorite/     Favorite, FavoriteRepository
 ├── history/      RecipeHistory, RecipeHistoryRepository
 ├── ingredient/   Ingredient, IngredientPortion, IngredientPrice, PriceSource,
 │                 IngredientRepository, IngredientPriceRepository
 ├── mealplan/     MealPlan, PlannedMeal, GroceryListItem, MealSlot, MealPlanRepository
+├── email/        EmailService, LoggingEmailService (local profile)
 ├── recipe/       Recipe, RecipeStep, RecipeIngredient, RecipeRepository
-├── user/         User, UserPreferences, UserRepository, UserPreferencesRepository
+├── user/         User, UserPreferences, UserRepository, UserPreferencesRepository,
+│                 UserController, UserService, dto/
 ├── BackendApplication.java
 └── HealthController.java
 
@@ -102,7 +121,7 @@ Code is organized **by feature**, not by layer. Each package will hold its own e
 
 ## Data Model
 
-16 tables: 14 entity classes plus 2 plain join tables (`user_dietary_restrictions`, `recipe_dietary_labels`).
+16 domain tables: 14 entity classes plus 2 plain join tables (`user_dietary_restrictions`, `recipe_dietary_labels`). Auth adds 2 more (`refresh_tokens`, `auth_codes`), described under Authentication.
 
 ```mermaid
 erDiagram
@@ -142,15 +161,18 @@ erDiagram
 
 **User** (`users`)
 
-| Field                 | Type    | Notes                                        |
-| --------------------- | ------- | -------------------------------------------- |
-| id                    | UUID    | PK                                           |
-| firstName             | String  | not null                                     |
-| lastName              | String  | not null                                     |
-| email                 | String  | unique, not null, trimmed and lowercased     |
-| passwordHash          | String  | not null                                     |
-| premium               | boolean | column `is_premium`, not null, default false |
-| createdAt / updatedAt | Instant | automatic timestamps                         |
+| Field                 | Type    | Notes                                                 |
+| --------------------- | ------- | ----------------------------------------------------- |
+| id                    | UUID    | PK                                                    |
+| firstName             | String  | not null                                              |
+| lastName              | String  | not null                                              |
+| email                 | String  | unique, not null, trimmed and lowercased              |
+| passwordHash          | String  | not null                                              |
+| premium               | boolean | column `is_premium`, not null, default false          |
+| verified              | boolean | column `is_verified`, not null, default false         |
+| passwordChangedAt     | Instant | nullable; access tokens issued before it are rejected |
+| lastLoginAt           | Instant | nullable                                              |
+| createdAt / updatedAt | Instant | automatic timestamps                                  |
 
 **UserPreferences** (`user_preferences`, 1:1 with User)
 
@@ -311,7 +333,9 @@ Entity methods only touch data the entity (and its loaded associations) already 
 | MealPlan         | `getEstimatedTotalCost()`, `isOverBudget()`, `clearGroceryList()`, add/remove helpers | `totalNutrition()`                                                                        |
 | PlannedMeal      | `moveTo(day, slot)`                                                                   | `scaledServings()`, `nutritionTotal()`                                                    |
 | GroceryListItem  | `addAmount()`, `markPurchased()`, `markUnpurchased()`                                 |                                                                                           |
-| User             |                                                                                       | `toPublicView()` returning a DTO without `passwordHash`                                   |
+| User             | `changePassword()`, `changeEmail()`, `markVerified()`, `recordLogin()`                |                                                                                           |
+| RefreshToken     | `isExpired(now)`                                                                      |                                                                                           |
+| AuthCode         | `isExpired(now)`, `isLocked(max)`, `recordFailedAttempt()`                            |                                                                                           |
 
 Optional ingredients (`RecipeIngredient.optional = true`) will be excluded from grocery aggregation, cost totals, and nutrition totals, and listed separately as optional additions.
 
@@ -328,12 +352,22 @@ Optional ingredients (`RecipeIngredient.optional = true`) will be excluded from 
 | FavoriteRepository        | `findByUserIdOrderByCreatedAtDesc`, `existsByUserIdAndRecipeId`, `deleteByUserIdAndRecipeId`                          |
 | RecipeHistoryRepository   | `findTop20ByUserIdOrderByServedAtDesc`, `findByUserIdAndServedAtAfter`, `findRecentRecipeIds` (JPQL, for the planner) |
 | MealPlanRepository        | `findByUserIdAndWeekStartDate`, `existsByUserIdAndWeekStartDate`, `findByUserIdOrderByWeekStartDateDesc`              |
+| RefreshTokenRepository    | `findByTokenHash`, `deleteAllByUserId` (single `DELETE`)                                                              |
+| AuthCodeRepository        | `findByUserIdAndType`, `deleteByUserIdAndType` (single `DELETE`)                                                      |
 
 Child entities (RecipeStep, RecipeIngredient, IngredientPortion, PlannedMeal, GroceryListItem) have no repositories; they are saved through their parent via cascade.
 
-## Services (planned)
+## Services
 
-- `AuthService`: registration and login; owns `PasswordEncoder`.
+Built:
+
+- `AuthService`: signup, verification, login, refresh, logout, password reset and update, email change.
+- `TokenService`: signs access JWTs, issues, rotates and revokes refresh tokens.
+- `AuthCodeService`: issues and consumes 6-digit codes; failed attempts commit in their own transaction (`REQUIRES_NEW`, `noRollbackFor`) so they survive the error.
+- `UserService`: current user, `UserResponse` mapping, account deletion.
+
+Planned:
+
 - `IngredientPricingService`: latest-price lookups and cost estimates (`estimatedCostFor`, per-meal and grocery pricing).
 - `DietaryLabelClassifier`: ingest-time decision tree. Exclusion lists per label (e.g. vegan fails on any meat, dairy, or egg) plus nutrition thresholds (e.g. high-protein above a protein-per-serving cutoff).
 - `RecipeIngestService`: parsing, matching, and persistence for scraped recipes (see below).
@@ -351,53 +385,67 @@ The request and response contract is documented in [../data_pipeline/README.md](
 
 Nutrition is never taken from the scrape. It is computed from matched `Ingredient` rows so there is a single source of truth. Ingestion is synchronous for v1.
 
-## Auth (planned)
+## Authentication
 
-Short-lived JWT access tokens plus hashed, database-stored refresh tokens for server-side revocation. Two entities are planned:
+Short-lived JWT access tokens plus hashed, database-stored refresh tokens, one per device. The full design and its reasoning are in the Forkast Auth Plan doc.
 
-- **UserToken**: `id`, `user`, `tokenHash` (SHA-256), `type` (`EMAIL_VERIFY`, `PASSWORD_RESET`, `EMAIL_CHANGE`), `newEmail` (nullable, for email changes), `expiresAt`.
-- **RefreshToken**: `id`, `user`, `tokenHash`, `expiresAt`, `createdAt`.
+| Item               | Rule                                                                                                                                         |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Access token       | JWT HS256, 15 minutes, claims `sub` (user id), `iat`, `exp`; sent as `Authorization: Bearer <token>`                                         |
+| Refresh token      | 32 random bytes as hex, SHA-256 stored, 90 days, sent in the request body; rotated on every refresh                                          |
+| Codes              | 6 digits emailed for verification, password reset and email change; SHA-256 stored, 15 minutes, locked after 5 wrong tries                   |
+| Passwords          | BCrypt strength 12, 8 to 72 characters                                                                                                       |
+| Session revocation | Password reset, password update and account deletion end every refresh token; access tokens issued before `password_changed_at` are rejected |
+| Enumeration        | Resend-verification and forgot-password always return the same 202                                                                           |
 
-| Method | Path                           | Auth   |
-| ------ | ------------------------------ | ------ |
-| POST   | /api/auth/signup               | no     |
-| POST   | /api/auth/login                | no     |
-| POST   | /api/auth/refresh              | cookie |
-| POST   | /api/auth/logout               | yes    |
-| GET    | /api/auth/verify-email         | token  |
-| POST   | /api/auth/forgot-password      | no     |
-| POST   | /api/auth/reset-password       | token  |
-| POST   | /api/auth/update-password      | yes    |
-| POST   | /api/auth/request-email-change | yes    |
-| POST   | /api/auth/update-email         | token  |
+**Request flow:** `JwtAuthenticationFilter` reads the Bearer token, verifies it with `JwtDecoder`, loads the user and checks `password_changed_at`. A valid token becomes an `AuthenticatedUser` principal (`@AuthenticationPrincipal` in controllers); an invalid one leaves the request unauthenticated. `SecurityConfig` then allows the public routes and requires authentication for everything else, so new routes are protected by default.
+
+**Errors:** every error is an RFC 9457 ProblemDetail (`application/problem+json`) from `GlobalExceptionHandler`; validation failures add an `errors` map. Security rejections (401/403) are routed through `SecurityErrorHandler` to the same handler. A wrong current password returns 400, never 401, so the app's "401 means refresh" logic is not triggered.
+
+**Tables:**
+
+- `refresh_tokens`: `id`, `user_id` (cascade), `token_hash` (unique), `expires_at`, `created_at`.
+- `auth_codes`: `id`, `user_id` (cascade), `type` (`EMAIL_VERIFY`, `PASSWORD_RESET`, `EMAIL_CHANGE`), `code_hash`, `new_email`, `attempts`, `expires_at`, `created_at`; unique on `(user_id, type)`.
 
 ## API Routes
 
-| Method | Path                                       | Handler                                       | Status                                    |
-| ------ | ------------------------------------------ | --------------------------------------------- | ----------------------------------------- |
-| GET    | /api/health                                | HealthController                              | **live**                                  |
-| GET    | /api/users/me                              | UserController → UserService                  | planned                                   |
-| PATCH  | /api/users/me                              | UserController → UserService                  | planned                                   |
-| GET    | /api/users/me/preferences                  | PreferenceController → PreferenceService      | planned                                   |
-| POST   | /api/users/me/preferences                  | PreferenceController → PreferenceService      | planned (one-time, 1:1)                   |
-| PATCH  | /api/users/me/preferences                  | PreferenceController → PreferenceService      | planned                                   |
-| GET    | /api/recipes                               | RecipeController → RecipeService              | planned (filters: labels, max time, text) |
-| GET    | /api/recipes/{id}                          | RecipeController → RecipeService              | planned                                   |
-| GET    | /api/recipes/{id}/scaled?servings=         | RecipeController → RecipeService              | planned                                   |
-| POST   | /api/recipes/{id}/favorite                 | FavoriteController → FavoriteService          | planned                                   |
-| DELETE | /api/recipes/{id}/favorite                 | FavoriteController → FavoriteService          | planned                                   |
-| POST   | /api/admin/recipes/ingest                  | IngestController → RecipeIngestService        | planned (API key)                         |
-| GET    | /api/admin/recipe-ingredients/needs-review | AdminController → RecipeIngestService         | planned                                   |
-| PATCH  | /api/admin/recipe-ingredients/{id}         | AdminController → RecipeIngestService         | planned (calls `matchIngredient`)         |
-| POST   | /api/meal-plans/generate                   | MealPlanController → MealPlanGeneratorService | planned                                   |
-| GET    | /api/meal-plans                            | MealPlanController → MealPlanService          | planned                                   |
-| GET    | /api/meal-plans/{id}                       | MealPlanController → MealPlanService          | planned                                   |
-| GET    | /api/meal-plans/{id}/calendar              | MealPlanController → MealPlanService          | planned                                   |
-| DELETE | /api/meal-plans/{id}                       | MealPlanController → MealPlanService          | planned                                   |
-| GET    | /api/meal-plans/{id}/grocery-list          | GroceryListController → GroceryListService    | planned                                   |
-| PATCH  | /api/grocery-list-items/{id}               | GroceryListController → GroceryListService    | planned                                   |
+| Method | Path                                       | Auth    | Handler               | Status                                    |
+| ------ | ------------------------------------------ | ------- | --------------------- | ----------------------------------------- |
+| GET    | /api/health                                | Public  | HealthController      | **live**                                  |
+| POST   | /api/auth/signup                           | Public  | AuthController        | **live** (201)                            |
+| POST   | /api/auth/verify-email                     | Public  | AuthController        | **live**                                  |
+| POST   | /api/auth/resend-verification              | Public  | AuthController        | **live** (202)                            |
+| POST   | /api/auth/login                            | Public  | AuthController        | **live**                                  |
+| POST   | /api/auth/refresh                          | Public  | AuthController        | **live**                                  |
+| POST   | /api/auth/logout                           | Public  | AuthController        | **live** (204)                            |
+| POST   | /api/auth/forgot-password                  | Public  | AuthController        | **live** (202)                            |
+| POST   | /api/auth/reset-password                   | Public  | AuthController        | **live**                                  |
+| PATCH  | /api/auth/password                         | Bearer  | AuthController        | **live**                                  |
+| POST   | /api/auth/email-change                     | Bearer  | AuthController        | **live** (202)                            |
+| POST   | /api/auth/email-change/confirm             | Bearer  | AuthController        | **live**                                  |
+| GET    | /api/users/me                              | Bearer  | UserController        | **live**                                  |
+| DELETE | /api/users/me                              | Bearer  | UserController        | **live** (204)                            |
+| PATCH  | /api/users/me                              | Bearer  | UserController        | planned (first and last name)             |
+| GET    | /api/users/me/preferences                  | Bearer  | PreferenceController  | planned                                   |
+| POST   | /api/users/me/preferences                  | Bearer  | PreferenceController  | planned (one-time, 1:1)                   |
+| PATCH  | /api/users/me/preferences                  | Bearer  | PreferenceController  | planned                                   |
+| GET    | /api/recipes                               | Public  | RecipeController      | planned (filters: labels, max time, text) |
+| GET    | /api/recipes/{id}                          | Public  | RecipeController      | planned                                   |
+| GET    | /api/recipes/{id}/scaled?servings=         | Public  | RecipeController      | planned                                   |
+| POST   | /api/recipes/{id}/favorite                 | Bearer  | FavoriteController    | planned                                   |
+| DELETE | /api/recipes/{id}/favorite                 | Bearer  | FavoriteController    | planned                                   |
+| POST   | /api/admin/recipes/ingest                  | API key | IngestController      | planned                                   |
+| GET    | /api/admin/recipe-ingredients/needs-review | API key | AdminController       | planned                                   |
+| PATCH  | /api/admin/recipe-ingredients/{id}         | API key | AdminController       | planned (calls `matchIngredient`)         |
+| POST   | /api/meal-plans/generate                   | Bearer  | MealPlanController    | planned                                   |
+| GET    | /api/meal-plans                            | Bearer  | MealPlanController    | planned                                   |
+| GET    | /api/meal-plans/{id}                       | Bearer  | MealPlanController    | planned                                   |
+| GET    | /api/meal-plans/{id}/calendar              | Bearer  | MealPlanController    | planned                                   |
+| DELETE | /api/meal-plans/{id}                       | Bearer  | MealPlanController    | planned                                   |
+| GET    | /api/meal-plans/{id}/grocery-list          | Bearer  | GroceryListController | planned                                   |
+| PATCH  | /api/grocery-list-items/{id}               | Bearer  | GroceryListController | planned                                   |
 
-Controllers stay thin (bind, validate, delegate). User, favorite, meal plan, and grocery routes require authentication; recipe browsing is public.
+Controllers stay thin (bind, validate, delegate to a service). Success responses return the DTO with an explicit status; errors return ProblemDetail. Public recipe routes must be added to `SecurityConfig`'s public list when they are built; admin routes need an API-key filter.
 
 ## Open Questions
 
@@ -409,4 +457,7 @@ Controllers stay thin (bind, validate, delegate). User, favorite, meal plan, and
 - [ ] Round `portionMultiplier` quantities (e.g. 2.33 eggs) at read time in the service, or store pre-rounded?
 - [ ] Allow more than one recipe per meal slot (main + side)? Currently one per slot.
 - [ ] Normalize `weekStartDate` to Monday in the service?
-- [ ] Reuse the Sofron auth flow as-is, or adapt it for this domain?
+- [x] Auth adapted from the existing Express flow for mobile: emailed codes instead of links, refresh token in the body, per-device sessions, account deletion instead of deactivation.
+- [ ] Choose a production email provider, and send emails after the transaction commits.
+- [ ] Rate-limit login and code endpoints before public launch.
+- [ ] Scheduled cleanup of expired refresh tokens and auth codes.
