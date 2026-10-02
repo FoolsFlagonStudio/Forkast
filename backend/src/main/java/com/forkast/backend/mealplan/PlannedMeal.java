@@ -27,9 +27,13 @@ import jakarta.persistence.UniqueConstraint;
         "meal_slot" }))
 public class PlannedMeal {
 
+    // ---------- id ----------
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    // ---------- columns ----------
 
     @Enumerated(EnumType.STRING)
     @Column(name = "day_of_week", nullable = false, length = 10)
@@ -42,6 +46,8 @@ public class PlannedMeal {
     @Column(name = "portion_multiplier", nullable = false, precision = 5, scale = 2)
     private BigDecimal portionMultiplier = BigDecimal.ONE;
 
+    // ---------- relationships ----------
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "meal_plan_id", nullable = false)
     private MealPlan mealPlan;
@@ -49,6 +55,8 @@ public class PlannedMeal {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "recipe_id", nullable = false)
     private Recipe recipe;
+
+    // ---------- constructors ----------
 
     protected PlannedMeal() {
         // required by JPA
@@ -59,11 +67,15 @@ public class PlannedMeal {
         moveTo(dayOfWeek, mealSlot);
     }
 
+    // ---------- behavior ----------
+
     /** Move this meal to a different day and/or slot. */
     public void moveTo(DayOfWeek dayOfWeek, MealSlot mealSlot) {
         this.dayOfWeek = requireNonNull(dayOfWeek, "dayOfWeek");
         this.mealSlot = requireNonNull(mealSlot, "mealSlot");
     }
+
+    // ---------- getters / setters ----------
 
     public UUID getId() {
         return id;

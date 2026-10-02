@@ -26,9 +26,13 @@ import jakarta.persistence.UniqueConstraint;
                columnNames = { "meal_plan_id", "ingredient_id", "unit" }))
 public class GroceryListItem {
 
+    // ---------- id ----------
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    // ---------- columns ----------
 
     @Column(name = "total_amount", nullable = false, precision = 10, scale = 3)
     private BigDecimal totalAmount;
@@ -42,6 +46,8 @@ public class GroceryListItem {
     @Column(nullable = false)
     private boolean purchased = false;
 
+    // ---------- relationships ----------
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "meal_plan_id", nullable = false)
     private MealPlan mealPlan;
@@ -49,6 +55,8 @@ public class GroceryListItem {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "ingredient_id", nullable = false, updatable = false)
     private Ingredient ingredient;
+
+    // ---------- constructors ----------
 
     protected GroceryListItem() {
         // required by JPA
@@ -60,6 +68,8 @@ public class GroceryListItem {
         this.unit = requireText(unit, "unit");
     }
 
+    // ---------- behavior ----------
+
     /** Combine another recipe's usage of the same ingredient into this line. */
     public void addAmount(BigDecimal amount) {
         this.totalAmount = this.totalAmount.add(requirePositive(amount, "amount"));
@@ -67,6 +77,8 @@ public class GroceryListItem {
 
     public void markPurchased() { this.purchased = true; }
     public void markUnpurchased() { this.purchased = false; }
+
+    // ---------- getters / setters ----------
 
     public UUID getId() { return id; }
     public Ingredient getIngredient() { return ingredient; }

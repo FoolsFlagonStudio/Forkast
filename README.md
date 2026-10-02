@@ -4,7 +4,7 @@ A mobile meal planner that builds your weekly recipes and grocery list around yo
 
 Users set a weekly budget, household size, dietary restrictions, and optional calorie/macro targets. Each week Forkast generates a meal plan and an aggregated grocery list priced to fit that budget.
 
-> **Status:** early development. The backend data model is complete; services, auth, and API endpoints are next. The data pipeline, frontend, and mobile app have not been started.
+> **Status:** early development. The backend data model, repositories, and Flyway migrations are complete; services, auth, and API endpoints are next. The data pipeline, frontend, and mobile app have not been started.
 
 ## How It Fits Together
 
@@ -28,26 +28,27 @@ recipe-scrapers  ── POST ──▶  parse, match, classify   ◀── REST 
 | ---------------- | ------------------------------------------------------------- | -------------------------------------------------- |
 | `backend/`       | Spring Boot API                                               | [backend/README.md](backend/README.md)             |
 | `data_pipeline/` | Python recipe scraper (planned)                               | [data_pipeline/README.md](data_pipeline/README.md) |
-| `frontend/`      | Marketing website with app info and App Store links (planned) | not yet created                                    |
-| `mobile/`        | React Native app (planned)                                    | not yet created                                    |
+| `frontend/`      | Marketing website with app info and App Store links (planned) | [frontend/README.md](frontend/README.md)           |
+| `mobile/`        | React Native app (planned)                                    | [mobile/README.md](mobile/README.md)               |
 
 ## Tech Stack
 
-| Area           | Technology                                                     |
-| -------------- | -------------------------------------------------------------- |
-| Backend        | Java, Spring Boot 4.1, Spring Data JPA, Hibernate 7, Maven     |
-| Database       | PostgreSQL 17 on Supabase (used as a plain database only)      |
-| Mobile         | React Native (planned)                                         |
-| Data pipeline  | Python, `recipe-scrapers` (planned)                            |
-| Nutrition data | USDA FoodData Central                                          |
-| Price data     | Open Prices (Open Food Facts), with manual entries as fallback |
+| Area           | Technology                                                         |
+| -------------- | ------------------------------------------------------------------ |
+| Backend        | Java, Spring Boot 4.1, Spring Data JPA, Hibernate 7, Flyway, Maven |
+| Database       | PostgreSQL 17 on Supabase (used as a plain database only)          |
+| Mobile         | React Native (planned)                                             |
+| Website        | Vite + TypeScript (planned)                                        |
+| Data pipeline  | Python, `recipe-scrapers` (planned)                                |
+| Nutrition data | USDA FoodData Central                                              |
+| Price data     | Open Prices (Open Food Facts), with manual entries as fallback     |
 
 ## Roadmap
 
 - [x] Repository and Spring Boot setup
 - [x] Database connection (Supabase)
 - [x] Data model (16 tables)
-- [ ] Flyway migrations
+- [x] Flyway migrations
 - [ ] Auth (signup, login, JWT + refresh tokens)
 - [ ] User and preferences endpoints
 - [ ] Recipe data pipeline
