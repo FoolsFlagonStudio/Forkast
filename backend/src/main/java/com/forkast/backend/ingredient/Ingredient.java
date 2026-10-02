@@ -24,9 +24,13 @@ import jakarta.persistence.Table;
 @Table(name = "ingredients")
 public class Ingredient {
 
+    // ---------- id ----------
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    // ---------- columns ----------
 
     @Column(name = "fdc_id", unique = true)
     private Long fdcId;
@@ -46,6 +50,8 @@ public class Ingredient {
     @Column(name = "fat_g_per_100g", precision = 7, scale = 2)
     private BigDecimal fatGPer100g;
 
+    // ---------- timestamps ----------
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -54,9 +60,13 @@ public class Ingredient {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    // ---------- relationships ----------
+
     @OneToMany(mappedBy = "ingredient", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("gramWeight ASC")
     private List<IngredientPortion> portions = new ArrayList<>();
+
+    // ---------- constructors ----------
 
     protected Ingredient() {
     }
@@ -65,7 +75,7 @@ public class Ingredient {
         setName(name);
     }
 
-    // --- relationship helpers ---
+    // ---------- relationship helpers ----------
 
     public void addPortion(IngredientPortion portion) {
         portions.add(portion);
@@ -77,7 +87,7 @@ public class Ingredient {
         portion.setIngredient(null);
     }
 
-    // --- getters / setters ---
+    // ---------- getters / setters ----------
 
     public UUID getId() {
         return id;

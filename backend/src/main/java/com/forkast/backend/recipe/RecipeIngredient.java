@@ -23,9 +23,13 @@ import jakarta.persistence.Table;
 @Table(name = "recipe_ingredients")
 public class RecipeIngredient {
 
+    // ---------- id ----------
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    // ---------- columns ----------
 
     @Column(precision = 10, scale = 3)
     private BigDecimal amount; // nullable: "salt to taste"
@@ -45,6 +49,8 @@ public class RecipeIngredient {
     @Column(name = "needs_review", nullable = false)
     private boolean needsReview = false;
 
+    // ---------- timestamps ----------
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -53,6 +59,8 @@ public class RecipeIngredient {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    // ---------- relationships ----------
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "recipe_id", nullable = false)
     private Recipe recipe;
@@ -60,6 +68,8 @@ public class RecipeIngredient {
     @ManyToOne(fetch = FetchType.LAZY) // optional: unmatched ingredients
     @JoinColumn(name = "ingredient_id")
     private Ingredient ingredient;
+
+    // ---------- constructors ----------
 
     protected RecipeIngredient() {
     }
@@ -71,7 +81,7 @@ public class RecipeIngredient {
         this.needsReview = true; // nothing is linked yet
     }
 
-    // --- ingredient matching ---
+    // ---------- ingredient matching ----------
 
     public void matchIngredient(Ingredient ingredient) {
         if (ingredient == null) {
@@ -86,7 +96,7 @@ public class RecipeIngredient {
         this.needsReview = true;
     }
 
-    // --- getters / setters ---
+    // ---------- getters / setters ----------
 
     public UUID getId() {
         return id;
@@ -163,7 +173,7 @@ public class RecipeIngredient {
         return updatedAt;
     }
 
-    // --- helpers ---
+    // ---------- private helpers ----------
 
     private static String requireText(String value, String field) {
         if (value == null || value.isBlank()) {

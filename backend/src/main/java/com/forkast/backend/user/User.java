@@ -16,9 +16,14 @@ import java.util.UUID;
 @Table(name = "users")
 
 public class User {
+
+    // ---------- id ----------
+
     @Id 
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    // ---------- columns ----------
 
     @Column(name="first_name", nullable=false)
     private String firstName;
@@ -35,6 +40,8 @@ public class User {
     @Column(name="is_premium", nullable=false)
     private boolean premium = false;
 
+    // ---------- timestamps ----------
+
     @CreationTimestamp 
     @Column(name = "created_at", nullable=false, updatable=false)
     private Instant createdAt;
@@ -42,6 +49,8 @@ public class User {
     @UpdateTimestamp 
     @Column(name = "updated_at", nullable=false)
     private Instant updatedAt;
+
+    // ---------- constructors ----------
 
     protected User() {}
 
@@ -51,6 +60,8 @@ public class User {
         this.email = email.trim().toLowerCase();
         this.passwordHash = passwordHash;
     }
+
+    // ---------- getters / setters ----------
 
     public UUID getId() {return id;}
     public String getFirstName() { return firstName; }

@@ -17,9 +17,13 @@ import jakarta.persistence.UniqueConstraint;
 @Table(name = "recipe_steps", uniqueConstraints = @UniqueConstraint(columnNames = { "recipe_id", "step_number" }))
 public class RecipeStep {
 
+    // ---------- id ----------
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    // ---------- columns ----------
 
     @Column(name = "step_number", nullable = false)
     private int stepNumber;
@@ -27,9 +31,13 @@ public class RecipeStep {
     @Column(name = "instruction_text", nullable = false, columnDefinition = "text")
     private String instructionText;
 
+    // ---------- relationships ----------
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "recipe_id", nullable = false)
     private Recipe recipe;
+
+    // ---------- constructors ----------
 
     protected RecipeStep() {
     }
@@ -38,6 +46,8 @@ public class RecipeStep {
         setStepNumber(stepNumber);
         setInstructionText(instructionText);
     }
+
+    // ---------- getters / setters ----------
 
     public UUID getId() {
         return id;

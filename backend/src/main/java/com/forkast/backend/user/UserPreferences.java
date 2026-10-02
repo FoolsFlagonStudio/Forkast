@@ -29,19 +29,13 @@ import java.util.UUID;
 @Table(name = "user_preferences")
 public class UserPreferences {
 
+    // ---------- id ----------
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false, unique = true)
-    private User user;
-
-    @ManyToMany
-    @JoinTable(name = "user_dietary_restrictions", joinColumns = @JoinColumn(name = "user_preference_id"), inverseJoinColumns = @JoinColumn(name = "dietary_label_id"))
-    private Set<DietaryLabel> dietaryRestrictions = new HashSet<>();
-
-    
+    // ---------- columns ----------
 
     @Column(name = "weekly_budget", nullable = false, precision = 10, scale = 2)
     private BigDecimal weeklyBudget;
@@ -67,6 +61,8 @@ public class UserPreferences {
     @Column(name = "repeat_avoidance_days", nullable = false)
     private int repeatAvoidanceDays = 14;
 
+    // ---------- timestamps ----------
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -75,6 +71,18 @@ public class UserPreferences {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    // ---------- relationships ----------
+
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    private User user;
+
+    @ManyToMany
+    @JoinTable(name = "user_dietary_restrictions", joinColumns = @JoinColumn(name = "user_preference_id"), inverseJoinColumns = @JoinColumn(name = "dietary_label_id"))
+    private Set<DietaryLabel> dietaryRestrictions = new HashSet<>();
+
+    // ---------- constructors ----------
+
     protected UserPreferences() {
     }
 
@@ -82,6 +90,18 @@ public class UserPreferences {
         this.user = user;
         this.weeklyBudget = weeklyBudget;
     }
+
+    // ---------- relationship helpers ----------
+
+    public void addDietaryRestriction(DietaryLabel label) {
+        dietaryRestrictions.add(label);
+    }
+
+    public void removeDietaryRestriction(DietaryLabel label) {
+        dietaryRestrictions.remove(label);
+    }
+
+    // ---------- getters / setters ----------
 
     public UUID getId() {
         return id;
@@ -155,23 +175,15 @@ public class UserPreferences {
         this.repeatAvoidanceDays = repeatAvoidanceDays;
     }
 
+    public Set<DietaryLabel> getDietaryRestrictions() {
+        return Collections.unmodifiableSet(dietaryRestrictions);
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }
 
     public Instant getUpdatedAt() {
         return updatedAt;
-    }
-
-    public Set<DietaryLabel> getDietaryRestrictions() {
-        return Collections.unmodifiableSet(dietaryRestrictions);
-    }
-
-    public void addDietaryRestriction(DietaryLabel label) {
-        dietaryRestrictions.add(label);
-    }
-
-    public void removeDietaryRestriction(DietaryLabel label) {
-        dietaryRestrictions.remove(label);
     }
 }

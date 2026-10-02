@@ -25,13 +25,19 @@ import jakarta.persistence.UniqueConstraint;
 @Table(name = "favorites", uniqueConstraints = @UniqueConstraint(columnNames = { "user_id", "recipe_id" }))
 public class Favorite {
 
+    // ---------- id ----------
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    // ---------- timestamps ----------
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    // ---------- relationships ----------
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false, updatable = false)
@@ -41,6 +47,8 @@ public class Favorite {
     @JoinColumn(name = "recipe_id", nullable = false, updatable = false)
     private Recipe recipe;
 
+    // ---------- constructors ----------
+
     protected Favorite() {
     }
 
@@ -48,6 +56,8 @@ public class Favorite {
         this.user = requireNonNull(user, "user");
         this.recipe = requireNonNull(recipe, "recipe");
     }
+
+    // ---------- getters only (immutable) ----------
 
     public UUID getId() {
         return id;

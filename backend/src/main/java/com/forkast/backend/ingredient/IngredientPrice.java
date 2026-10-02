@@ -26,9 +26,13 @@ import jakarta.persistence.Table;
 @Table(name = "ingredient_prices", indexes = @Index(name = "idx_price_ingredient_recorded", columnList = "ingredient_id, recorded_at"))
 public class IngredientPrice {
 
+    // ---------- id ----------
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    // ---------- columns ----------
 
     @Column(name = "store_name", updatable = false)
     private String storeName;
@@ -52,9 +56,13 @@ public class IngredientPrice {
     @Column(name = "recorded_at", nullable = false, updatable = false)
     private Instant recordedAt;
 
+    // ---------- relationships ----------
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "ingredient_id", nullable = false, updatable = false)
     private Ingredient ingredient;
+
+    // ---------- constructors ----------
 
     protected IngredientPrice() {
     }
