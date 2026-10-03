@@ -1,26 +1,47 @@
 package com.forkast.backend.user;
 
+import static com.forkast.backend.common.ValidationUtils.requireNonNull;
+
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.DayOfWeek;
 import java.time.Instant;
+import java.time.DayOfWeek;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.Map;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import com.forkast.backend.diet.DietaryLabel;
+import com.forkast.backend.mealplan.MealSlot;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.MapKeyColumn;
+import jakarta.persistence.MapKeyEnumerated;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Id;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.MapKeyColumn;
+import jakarta.persistence.MapKeyEnumerated;
 
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -61,6 +82,13 @@ public class UserPreferences {
     @Column(name = "repeat_avoidance_days", nullable = false)
     private int repeatAvoidanceDays = 14;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "plan_start_day", nullable = false, length = 10)
+    private DayOfWeek planStartDay = DayOfWeek.SUNDAY;
+
+    @Column(name = "prefers_meal_prep", nullable = false)
+    private boolean prefersMealPrep = false;
+
     // ---------- timestamps ----------
 
     @CreationTimestamp
@@ -81,6 +109,12 @@ public class UserPreferences {
     @JoinTable(name = "user_dietary_restrictions", joinColumns = @JoinColumn(name = "user_preference_id"), inverseJoinColumns = @JoinColumn(name = "dietary_label_id"))
     private Set<DietaryLabel> dietaryRestrictions = new HashSet<>();
 
+    @ElementCollection
+    @CollectionTable(name = "user_meal_slots", joinColumns = @JoinColumn(name = "user_preference_id"))
+    @MapKeyEnumerated(EnumType.STRING)
+    @MapKeyColumn(name = "meal_slot")
+    @Column(name = "recipes_per_week", nullable = false)
+    private Map<MealSlot, Integer> mealSlots = new EnumMap<>(MealSlot.class);
     // ---------- constructors ----------
 
     protected UserPreferences() {
@@ -116,7 +150,7 @@ public class UserPreferences {
     }
 
     public void setWeeklyBudget(BigDecimal weeklyBudget) {
-        this.weeklyBudget = weeklyBudget;
+        this.weeklyBudget = requireNonNull(weeklyBudget, "weeklyBudget").setScale(2, RoundingMode.HALF_UP);
     }
 
     public int getHouseholdServingSize() {
@@ -185,5 +219,48 @@ public class UserPreferences {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public DayOfWeek getPlanStartDay() {
+        return planStartDay;
+    }
+
+    public void setPlanStartDay(DayOfWeek planStartDay) {
+        this.planStartDay = requireNonNull(planStartDay, "planStartDay");
+    }
+
+    public boolean isPrefersMealPrep() {
+        return prefersMealPrep;
+    }
+
+    public void setPrefersMealPrep(boolean prefersMealPrep) {
+        this.prefersMealPrep = prefersMealPrep;
+    }
+
+    public Map<MealSlot, Integer> getMealSlots() {
+        return Collections.unmodifiableMap(mealSlots);
+    }
+
+    /** Replaces every meal slot. Slots not in the new map are deleted. */
+    public void replaceMealSlots(Map<MealSlot, Integer> newSlots) {
+        requireNonNull(newSlots, "mealSlots");
+        if (newSlots.isEmpty()) {
+            throw new IllegalArgumentException("At least one meal slot is required");
+        }
+        newSlots.forEach((slot, count) -> {
+            if (slot == null || count == null || count < 1 || count > 7) {
+                throw new IllegalArgumentException("Each meal slot needs a count from 1 to 7");
+            }
+        });
+        mealSlots.clear();
+        mealSlots.putAll(newSlots);
+    }
+
+    /** Replaces every dietary restriction. */
+    public void replaceDietaryRestrictions(Set<DietaryLabel> labels) {
+        dietaryRestrictions.clear();
+        if (labels != null) {
+            dietaryRestrictions.addAll(labels);
+        }
     }
 }

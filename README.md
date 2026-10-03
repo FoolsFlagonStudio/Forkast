@@ -56,3 +56,10 @@ recipe-scrapers  ── POST ──▶  parse, match, classify   ◀── REST 
 - [ ] Grocery list and pricing
 - [ ] Mobile app
 - [ ] Marketing website
+
+## Stretch Features
+
+Ideas deliberately left out of v1:
+
+- **Per-slot day selection.** Let a meal slot cover only some days (e.g. lunches on weekdays only). In v1 every included slot covers all 7 days of the plan.
+- **Automatic weekly generation.** A scheduled job builds each user's plan the night before their plan start day and sends a push notification. v1 generates on demand.
