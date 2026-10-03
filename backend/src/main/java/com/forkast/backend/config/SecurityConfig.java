@@ -11,10 +11,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import com.forkast.backend.auth.JwtAuthenticationFilter;
-import com.forkast.backend.user.UserRepository;
 
 import com.forkast.backend.auth.JwtAuthenticationFilter;
 import com.forkast.backend.user.UserRepository;
@@ -39,7 +35,8 @@ public class SecurityConfig {
         SecurityFilterChain securityFilterChain(HttpSecurity http,
                         SecurityErrorHandler securityErrorHandler,
                         JwtDecoder jwtDecoder,
-                        UserRepository userRepository) throws Exception {
+                        UserRepository userRepository,
+                        AdminProperties adminProperties) throws Exception {
                 http
                                 .csrf(csrf -> csrf.disable())
                                 .sessionManagement(session -> session
@@ -52,10 +49,13 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.GET, "/api/dietary-labels").permitAll()
                                                 .requestMatchers(HttpMethod.POST, PUBLIC_POST_ROUTES).permitAll()
                                                 .requestMatchers("/error").permitAll()
+                                                .requestMatchers("/api/admin/**").hasRole("ADMIN")
                                                 .anyRequest().authenticated())
                                 .exceptionHandling(ex -> ex
                                                 .authenticationEntryPoint(securityErrorHandler)
                                                 .accessDeniedHandler(securityErrorHandler))
+                                .addFilterBefore(new ApiKeyAuthenticationFilter(adminProperties.apiKey()),
+                                                UsernamePasswordAuthenticationFilter.class)
                                 .addFilterBefore(new JwtAuthenticationFilter(jwtDecoder, userRepository),
                                                 UsernamePasswordAuthenticationFilter.class);
 
