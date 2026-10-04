@@ -8,4 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
 
     List<Recipe> findByNameContainingIgnoreCase(String text);
+
+    boolean existsBySourceUrl(String sourceUrl);
 }
