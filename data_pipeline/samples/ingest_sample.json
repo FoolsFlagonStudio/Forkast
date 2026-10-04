@@ -1,0 +1,64 @@
+{
+  "recipes": [
+    {
+      "sourceUrl": "https://example.com/recipes/turkey-chili",
+      "host": "example.com",
+      "name": "Weeknight Turkey Chili",
+      "description": "A test recipe for the ingest endpoint.",
+      "prepTimeMinutes": 15,
+      "cookTimeMinutes": 40,
+      "yields": "6 servings",
+      "rawIngredients": [
+        "For the chili:",
+        "1 tablespoon olive oil",
+        "1 lb ground turkey",
+        "1 medium onion, diced",
+        "3 cloves garlic, minced",
+        "2 tablespoons chili powder",
+        "1 teaspoon ground cumin",
+        "1 (28 oz) can crushed tomatoes",
+        "2 (15 oz) cans kidney beans, drained",
+        "1 cup low sodium chicken broth",
+        "Salt and pepper to taste",
+        "1/2 cup shredded cheddar cheese (optional)"
+      ],
+      "rawInstructions": [
+        "Heat the oil and brown the turkey with the onion and garlic.",
+        "Stir in everything else and simmer for 30 minutes.",
+        "Store leftovers in an airtight container for up to 4 days."
+      ],
+      "imageUrl": null,
+      "category": "Dinner",
+      "cuisine": "American",
+      "keywords": ["chili", "make ahead", "freezer friendly"]
+    },
+    {
+      "sourceUrl": "https://example.com/recipes/turkey-chili",
+      "host": "example.com",
+      "name": "Weeknight Turkey Chili (duplicate)",
+      "yields": "6 servings",
+      "rawIngredients": ["1 lb ground turkey"],
+      "rawInstructions": ["Cook it."]
+    },
+    {
+      "sourceUrl": "https://example.com/recipes/mystery-bowl",
+      "host": "example.com",
+      "name": "Mystery Bowl",
+      "yields": "2 servings",
+      "rawIngredients": [
+        "1 cup cooked white rice",
+        "2 tbsp gochujang",
+        "1 tsp furikake"
+      ],
+      "rawInstructions": ["Assemble the bowl."]
+    },
+    {
+      "sourceUrl": "https://example.com/recipes/no-servings",
+      "host": "example.com",
+      "name": "Broken Recipe",
+      "yields": null,
+      "rawIngredients": ["1 cup flour"],
+      "rawInstructions": ["Mix."]
+    }
+  ]
+}

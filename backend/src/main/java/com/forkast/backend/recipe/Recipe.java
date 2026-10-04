@@ -1,5 +1,6 @@
 package com.forkast.backend.recipe;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -55,6 +56,42 @@ public class Recipe {
 
     @Column(columnDefinition = "text")
     private String notes;
+
+    @Column(name = "source_url", unique = true, length = 2048)
+    private String sourceUrl;
+
+    @Column(name = "source_host")
+    private String sourceHost;
+
+    @Column(name = "image_url", length = 2048)
+    private String imageUrl;
+
+    @Column(length = 100)
+    private String category;
+
+    @Column(length = 100)
+    private String cuisine;
+
+    @Column(columnDefinition = "text")
+    private String keywords;
+
+    @Column(name = "meal_prep_score", nullable = false)
+    private int mealPrepScore = 0;
+
+    @Column(name = "calories_per_serving", precision = 7, scale = 2)
+    private BigDecimal caloriesPerServing;
+
+    @Column(name = "protein_g_per_serving", precision = 7, scale = 2)
+    private BigDecimal proteinGPerServing;
+
+    @Column(name = "carbs_g_per_serving", precision = 7, scale = 2)
+    private BigDecimal carbsGPerServing;
+
+    @Column(name = "fat_g_per_serving", precision = 7, scale = 2)
+    private BigDecimal fatGPerServing;
+
+    @Column(name = "nutrition_complete", nullable = false)
+    private boolean nutritionComplete = false;
 
     // ---------- timestamps ----------
 
@@ -201,6 +238,92 @@ public class Recipe {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public String getSourceUrl() {
+        return sourceUrl;
+    }
+
+    public String getSourceHost() {
+        return sourceHost;
+    }
+
+    public void setSource(String sourceUrl, String sourceHost) {
+        this.sourceUrl = trimToNull(sourceUrl);
+        this.sourceHost = trimToNull(sourceHost);
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = trimToNull(imageUrl);
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = trimToNull(category);
+    }
+
+    public String getCuisine() {
+        return cuisine;
+    }
+
+    public void setCuisine(String cuisine) {
+        this.cuisine = trimToNull(cuisine);
+    }
+
+    public String getKeywords() {
+        return keywords;
+    }
+
+    public void setKeywords(String keywords) {
+        this.keywords = trimToNull(keywords);
+    }
+
+    public int getMealPrepScore() {
+        return mealPrepScore;
+    }
+
+    public void setMealPrepScore(int mealPrepScore) {
+        if (mealPrepScore < 0 || mealPrepScore > 100) {
+            throw new IllegalArgumentException("mealPrepScore must be 0 to 100");
+        }
+        this.mealPrepScore = mealPrepScore;
+    }
+
+    public BigDecimal getCaloriesPerServing() {
+        return caloriesPerServing;
+    }
+
+    public BigDecimal getProteinGPerServing() {
+        return proteinGPerServing;
+    }
+
+    public BigDecimal getCarbsGPerServing() {
+        return carbsGPerServing;
+    }
+
+    public BigDecimal getFatGPerServing() {
+        return fatGPerServing;
+    }
+
+    public boolean isNutritionComplete() {
+        return nutritionComplete;
+    }
+
+    /** Sets all per-serving nutrition at once; values may be null when unknown. */
+    public void setNutrition(BigDecimal calories, BigDecimal protein, BigDecimal carbs,
+            BigDecimal fat, boolean complete) {
+        this.caloriesPerServing = calories;
+        this.proteinGPerServing = protein;
+        this.carbsGPerServing = carbs;
+        this.fatGPerServing = fat;
+        this.nutritionComplete = complete;
     }
 
     // ---------- private helpers ----------

@@ -1,21 +1,28 @@
 package com.forkast.backend.ingredient;
-
+import static com.forkast.backend.common.ValidationUtils.requireText;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
@@ -66,6 +73,15 @@ public class Ingredient {
     @OrderBy("gramWeight ASC")
     private List<IngredientPortion> portions = new ArrayList<>();
 
+    @OneToMany(mappedBy = "ingredient", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<IngredientAlias> aliases = new HashSet<>();
+
+    @ElementCollection
+    @CollectionTable(name = "ingredient_tags", joinColumns = @JoinColumn(name = "ingredient_id"))
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tag", nullable = false, length = 20)
+    private Set<IngredientTag> tags = new HashSet<>();
+
     // ---------- constructors ----------
 
     protected Ingredient() {
@@ -106,7 +122,7 @@ public class Ingredient {
     }
 
     public void setName(String name) {
-        this.name = name.trim();
+        this.name = requireText(name, "name").toLowerCase();
     }
 
     public BigDecimal getCaloriesPer100g() {
@@ -151,5 +167,40 @@ public class Ingredient {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    /** Adds an alias unless it already exists or is the ingredient's own name. */
+    public void addAlias(String alias) {
+        String normalized = requireText(alias, "alias").toLowerCase();
+        boolean exists = normalized.equals(name)
+                || aliases.stream().anyMatch(a -> a.getAlias().equals(normalized));
+        if (!exists) {
+            IngredientAlias newAlias = new IngredientAlias(normalized);
+            newAlias.setIngredient(this);
+            aliases.add(newAlias);
+        }
+    }
+
+    public Set<IngredientAlias> getAliases() {
+        return Collections.unmodifiableSet(aliases);
+    }
+
+    public void replaceTags(Set<IngredientTag> newTags) {
+        tags.clear();
+        if (newTags != null) {
+            tags.addAll(newTags);
+        }
+    }
+
+    public Set<IngredientTag> getTags() {
+        return Collections.unmodifiableSet(tags);
+    }
+
+    /** Replaces all portions; used when re-importing from FDC. */
+    public void replacePortions(List<IngredientPortion> newPortions) {
+        for (IngredientPortion portion : List.copyOf(portions)) {
+            removePortion(portion);
+        }
+        newPortions.forEach(this::addPortion);
     }
 }

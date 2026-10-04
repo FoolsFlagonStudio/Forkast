@@ -1,0 +1,30 @@
+# One recipe URL per line. Lines starting with # are ignored.
+
+# Sip and Feast
+https://www.sipandfeast.com/chicken-riggies/
+https://www.sipandfeast.com/cajun-chicken-pasta-recipe/
+https://www.sipandfeast.com/chicken-cacciatore-pasta/
+https://www.sipandfeast.com/creamy-lemon-chicken-pasta/
+https://www.sipandfeast.com/garlic-chicken-broccoli-pasta/
+https://www.sipandfeast.com/chicken-pesto-pasta-salad/
+https://www.sipandfeast.com/pastina-in-brodo/
+
+# Budget Bytes
+https://www.budgetbytes.com/chicken-enchilada-soup/
+https://www.budgetbytes.com/ranch-chicken-meal-prep/
+https://www.budgetbytes.com/salsa-chicken-meal-prep-bowls/
+https://www.budgetbytes.com/sheet-pan-greek-chicken-and-vegetables/
+https://www.budgetbytes.com/chicken-stir-fry/
+https://www.budgetbytes.com/honey-garlic-chicken/
+https://www.budgetbytes.com/vegetarian-chili/
+https://www.budgetbytes.com/weeknight-black-bean-chili/
+https://www.budgetbytes.com/slow-cooker-black-bean-soup/
+https://www.budgetbytes.com/hot-sour-vegetable-soup-with-tofu/
+
+# Damn Delicious
+# https://damndelicious.net/2023/10/20/one-pot-lemon-chicken-and-orzo/
+# https://damndelicious.net/2022/10/28/one-pot-chicken-stew/
+# https://damndelicious.net/2024/11/08/creamy-chicken-tortellini-soup/
+# https://damndelicious.net/2019/02/22/chicken-pot-pie-soup/
+# https://damndelicious.net/2024/09/06/creamy-chicken-tortilla-soup/
+# https://damndelicious.net/2020/01/25/homestyle-chicken-noodle-soup/

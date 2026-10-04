@@ -1,5 +1,5 @@
 package com.forkast.backend.recipe;
-
+import static com.forkast.backend.common.ValidationUtils.requireNonNull;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -49,6 +49,12 @@ public class RecipeIngredient {
     @Column(name = "needs_review", nullable = false)
     private boolean needsReview = false;
 
+    @Column(name = "parsed_name")
+    private String parsedName;
+
+    @Column(name = "match_score", precision = 4, scale = 3)
+    private BigDecimal matchScore;
+
     // ---------- timestamps ----------
 
     @CreationTimestamp
@@ -83,17 +89,35 @@ public class RecipeIngredient {
 
     // ---------- ingredient matching ----------
 
-    public void matchIngredient(Ingredient ingredient) {
-        if (ingredient == null) {
-            throw new IllegalArgumentException("ingredient is required");
-        }
-        this.ingredient = ingredient;
+    /** Links a catalog ingredient. Score is 1.000 for exact or manual matches. */
+    public void matchIngredient(Ingredient ingredient, BigDecimal score) {
+        this.ingredient = requireNonNull(ingredient, "ingredient");
+        this.matchScore = score;
         this.needsReview = false;
     }
 
-    public void unmatchIngredient() {
+    /** No confident match: keep the best score seen and send the line to review. */
+    public void flagForReview(BigDecimal bestScore) {
         this.ingredient = null;
+        this.matchScore = bestScore;
         this.needsReview = true;
+    }
+
+    /** Removes a bad match and sends the line back to review. */
+    public void unmatchIngredient() {
+        flagForReview(null);
+    }
+
+    public String getParsedName() {
+        return parsedName;
+    }
+
+    public void setParsedName(String parsedName) {
+        this.parsedName = trimToNull(parsedName);
+    }
+
+    public BigDecimal getMatchScore() {
+        return matchScore;
     }
 
     // ---------- getters / setters ----------
