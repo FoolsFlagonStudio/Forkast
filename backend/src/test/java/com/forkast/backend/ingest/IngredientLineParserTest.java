@@ -121,7 +121,26 @@ class IngredientLineParserTest {
     @Test
     void commaBetweenDescriptorsStaysInName() {
         assertLine(parser.parse("1 lb. boneless, skinless chicken breast ($4.99)"),
-                "1", Unit.LB, "boneless skinless chicken breast", "$4.99");
+                "1", Unit.LB, "boneless skinless chicken breast", null);
+    }
+
+    @Test
+    void pricesAreStripped() {
+        assertLine(parser.parse("3 Tbsp cooking oil (divided, $0.12**)"), "3", Unit.TBSP, "cooking oil", "divided");
+        assertLine(parser.parse("1/4 cup olive oil ($0.64)"), "0.25", Unit.CUP, "olive oil", null);
+        assertLine(parser.parse("1 Tbsp chili garlic sauce ( $0.34)"), "1", Unit.TBSP, "chili garlic sauce", null);
+    }
+
+    @Test
+    void restatedMetricWeightsAreDropped() {
+        assertLine(parser.parse("1 pound (454g) rigatoni"), "1", Unit.LB, "rigatoni", null);
+        assertLine(parser.parse("2 cups (480g) reserved pasta water (will most likely not need it all)"),
+                "2", Unit.CUP, "reserved pasta water", "will most likely not need it all");
+    }
+
+    @Test
+    void metricContainerSizeIsStillRead() {
+        assertLine(parser.parse("1 (400g) can chopped tomatoes"), "400", Unit.G, "chopped tomatoes", null);
     }
 
     @Test
@@ -132,7 +151,7 @@ class IngredientLineParserTest {
     @Test
     void containerSizeWithoutParentheses() {
         assertLine(parser.parse("1 10oz. can diced tomatoes with green chiles ($0.96**)"),
-                "10", Unit.OZ, "diced tomatoes with green chiles", "$0.96");
+                "10", Unit.OZ, "diced tomatoes with green chiles", null);
         assertLine(parser.parse("1 28-ounce can crushed plum tomatoes"),
                 "28", Unit.OZ, "crushed plum tomatoes", null);
     }
@@ -140,18 +159,18 @@ class IngredientLineParserTest {
     @Test
     void containerWordAfterUnitIsDropped() {
         assertLine(parser.parse("4 oz. can fire roasted green chiles (with juices, $0.88)"),
-                "4", Unit.OZ, "fire roasted green chiles", "with juices, $0.88");
+                "4", Unit.OZ, "fire roasted green chiles", "with juices");
     }
 
     @Test
     void largeVolumeUnits() {
         assertLine(parser.parse("1 gallon water"), "1", Unit.GALLON, "water", null);
-        assertLine(parser.parse("1 pint grape tomatoes ($1.69)"), "1", Unit.PINT, "grape tomatoes", "$1.69");
+        assertLine(parser.parse("1 pint grape tomatoes ($1.69)"), "1", Unit.PINT, "grape tomatoes", null);
     }
 
     @Test
     void pinchWithoutAmountMeansOne() {
-        assertLine(parser.parse("pinch salt ($0.02)"), "1", Unit.PINCH, "salt", "$0.02");
+        assertLine(parser.parse("pinch salt ($0.02)"), "1", Unit.PINCH, "salt", null);
     }
 
     @Test

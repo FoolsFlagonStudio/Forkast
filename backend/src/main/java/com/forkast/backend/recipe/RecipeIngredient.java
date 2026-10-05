@@ -1,4 +1,5 @@
 package com.forkast.backend.recipe;
+
 import static com.forkast.backend.common.ValidationUtils.requireNonNull;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -54,6 +55,9 @@ public class RecipeIngredient {
 
     @Column(name = "match_score", precision = 4, scale = 3)
     private BigDecimal matchScore;
+
+    @Column(nullable = false)
+    private int position;
 
     // ---------- timestamps ----------
 
@@ -187,6 +191,14 @@ public class RecipeIngredient {
 
     public Ingredient getIngredient() {
         return ingredient;
+    }
+
+    public int getPosition() {
+        return position;
+    }
+
+    void setPosition(int position) { // package-private: only Recipe.addIngredient sets it
+        this.position = position;
     }
 
     public Instant getCreatedAt() {
