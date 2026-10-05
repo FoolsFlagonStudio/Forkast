@@ -2,7 +2,7 @@
 
 Spring Boot API for Forkast. It owns all data access: recipes, ingredient matching, nutrition, pricing, dietary labels, meal plan generation, and grocery lists.
 
-> **Status:** the data model, Flyway migrations (V1 to V6), authentication, user preferences, and the recipe ingestion pipeline are complete. Live endpoints: `GET /api/health`, `GET /api/dietary-labels`, the 11 `/api/auth/*` routes, `GET`/`PATCH`/`DELETE /api/users/me`, `GET`/`POST`/`PUT /api/users/me/preferences`, and the 5 `/api/admin/*` ingestion routes. Recipe browsing and meal plans are next.
+> **Status:** the data model, Flyway migrations (V1 to V7), authentication, user preferences, the recipe ingestion pipeline, and recipe browsing are complete. Live endpoints: `GET /api/health`, `GET /api/dietary-labels`, the 11 `/api/auth/*` routes, `GET`/`PATCH`/`DELETE /api/users/me`, `GET`/`POST`/`PUT /api/users/me/preferences`, recipe search, detail and favorites, and the 5 `/api/admin/*` ingestion routes. The meal plan generator is next.
 
 ## Local Setup
 
@@ -71,14 +71,15 @@ On startup, Flyway applies any pending migrations to an empty database, so no ma
 
 The schema is defined by versioned SQL migrations in `src/main/resources/db/migration/`:
 
-| Migration                        | Contents                                                                                                                                                                                                                                                                                                  |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `V1__initial_schema.sql`         | All 16 domain tables, constraints, indexes, and foreign keys                                                                                                                                                                                                                                              |
-| `V2__auth.sql`                   | `users.is_verified`, `password_changed_at`, `last_login_at`; `refresh_tokens` and `auth_codes` tables                                                                                                                                                                                                     |
-| `V3__cascade_user_deletes.sql`   | Foreign keys to `users` (and their children) cascade on delete, for account deletion                                                                                                                                                                                                                      |
-| `V4__seed_dietary_labels.sql`    | Inserts the 10 starter dietary labels                                                                                                                                                                                                                                                                     |
-| `V5__preferences_meal_slots.sql` | `user_preferences.plan_start_day` and `prefers_meal_prep`; `user_meal_slots` table                                                                                                                                                                                                                        |
-| `V6__recipe_pipeline.sql`        | `pg_trgm` (in the `extensions` schema); recipe source, image, category, cuisine, keywords, meal-prep score and per-serving nutrition columns; `ingredient_aliases` and `ingredient_tags` tables; trigram indexes on ingredient names and aliases; `parsed_name` and `match_score` on `recipe_ingredients` |
+| Migration                            | Contents                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `V1__initial_schema.sql`             | All 16 domain tables, constraints, indexes, and foreign keys                                                                                                                                                                                                                                              |
+| `V2__auth.sql`                       | `users.is_verified`, `password_changed_at`, `last_login_at`; `refresh_tokens` and `auth_codes` tables                                                                                                                                                                                                     |
+| `V3__cascade_user_deletes.sql`       | Foreign keys to `users` (and their children) cascade on delete, for account deletion                                                                                                                                                                                                                      |
+| `V4__seed_dietary_labels.sql`        | Inserts the 10 starter dietary labels                                                                                                                                                                                                                                                                     |
+| `V5__preferences_meal_slots.sql`     | `user_preferences.plan_start_day` and `prefers_meal_prep`; `user_meal_slots` table                                                                                                                                                                                                                        |
+| `V6__recipe_pipeline.sql`            | `pg_trgm` (in the `extensions` schema); recipe source, image, category, cuisine, keywords, meal-prep score and per-serving nutrition columns; `ingredient_aliases` and `ingredient_tags` tables; trigram indexes on ingredient names and aliases; `parsed_name` and `match_score` on `recipe_ingredients` |
+| `V7__recipe_ingredient_position.sql` | `recipe_ingredients.position`, backfilled per recipe in insert order, so lines come back in the order the recipe lists them                                                                                                                                                                               |
 
 On startup, Flyway runs any migrations not yet recorded in the `flyway_schema_history` table, in version order. Hibernate then runs with `ddl-auto=validate` and refuses to start if an entity doesn't match the schema.
 
@@ -107,13 +108,13 @@ src/main/java/com/forkast/backend/
 ├── auth/         AuthController, AuthService, TokenService, AuthCodeService,
 │                 JwtAuthenticationFilter, AuthProperties, AuthenticatedUser,
 │                 RefreshToken, AuthCode, AuthCodeType + repositories, dto/
-├── common/       ValidationUtils, TokenHasher, MessageResponse,
+├── common/       ValidationUtils, TokenHasher, MessageResponse, PageResponse,
 │                 exception/ApiException, exception/GlobalExceptionHandler
 ├── config/       SecurityConfig, SecurityErrorHandler, JwtConfig,
 │                 AdminProperties, ApiKeyAuthenticationFilter
 ├── diet/         DietaryLabel, DietaryLabelRepository, DietaryLabelResponse,
 │                 DietaryLabelController
-├── favorite/     Favorite, FavoriteRepository
+├── favorite/     Favorite, FavoriteRepository, FavoriteService, FavoriteController
 ├── history/      RecipeHistory, RecipeHistoryRepository
 ├── ingest/       Recipe pipeline: IngredientLineParser, ParsedLine, Unit,
 │                 UnitConverter, NutritionCalculator, DietaryLabelClassifier,
@@ -127,7 +128,12 @@ src/main/java/com/forkast/backend/
 │                 IngredientAliasRepository, IngredientPriceRepository
 ├── mealplan/     MealPlan, PlannedMeal, GroceryListItem, MealSlot, MealPlanRepository
 ├── email/        EmailService, LoggingEmailService (local profile)
-├── recipe/       Recipe, RecipeStep, RecipeIngredient, RecipeRepository
+├── recipe/       Recipe, RecipeStep, RecipeIngredient, RecipeRepository,
+│                 RecipeQueryService, RecipeController, RecipeDetailResponse
+│   ├── fit/      RecipeFitEvaluator, FitTargets, RecipeNutrition, FitFlag, FitResult
+│   ├── scale/    IngredientScaler, ScaledAmount
+│   └── search/   RecipeSpecifications, RecipeSearchCriteria, RecipeSearchRequest,
+│                 RecipeSort, RecipeSummaryResponse
 ├── user/         User, UserPreferences, UserRepository, UserPreferencesRepository,
 │                 UserController, UserService, PreferencesController,
 │                 PreferencesService, dto/
@@ -243,7 +249,7 @@ erDiagram
 | caloriesPerServing, proteinGPerServing, carbsGPerServing, fatGPerServing | BigDecimal(7,2)         | from `NutritionCalculator`; set together by `setNutrition`                            |
 | nutritionComplete                                                        | boolean                 | true only when every required line converted to grams                                 |
 | steps                                                                    | List\<RecipeStep>       | ordered by stepNumber                                                                 |
-| ingredients                                                              | List\<RecipeIngredient> |                                                                                       |
+| ingredients                                                              | List\<RecipeIngredient> | ordered by `position`; `addIngredient` numbers each line                              |
 | dietaryLabels                                                            | Set\<DietaryLabel>      | M:N via `recipe_dietary_labels`                                                       |
 | createdAt / updatedAt                                                    | Instant                 | automatic timestamps                                                                  |
 
@@ -260,6 +266,7 @@ erDiagram
 | unit                  | String           | not null                                                                 |
 | optional              | boolean          | column `is_optional`, default false                                      |
 | prepNote              | String           | nullable (chopped, room temperature, etc.)                               |
+| position              | int              | not null, from 1; the line's place in the recipe                         |
 | rawText               | String (text)    | not null; the original unparsed line                                     |
 | parsedName            | String           | nullable; the name the parser read, used for matching and review         |
 | matchScore            | BigDecimal(4,3)  | nullable; 1.000 for exact or manual matches, else the best trigram score |
@@ -378,21 +385,21 @@ Optional ingredients (`RecipeIngredient.optional = true`) will be excluded from 
 
 ## Repositories
 
-| Repository                    | Custom queries                                                                                                                     |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| UserRepository                | `findByEmail`, `existsByEmail`                                                                                                     |
-| UserPreferencesRepository     | `findByUserId`, `existsByUserId`                                                                                                   |
-| DietaryLabelRepository        | `findAllByOrderByNameAsc`, `findByNameIgnoreCase`                                                                                  |
-| RecipeRepository              | `findByNameContainingIgnoreCase`, `existsBySourceUrl` (filtered, paginated search planned)                                         |
-| IngredientRepository          | `findByFdcId`, `findByNameIgnoreCase`, `findByName`, `findMostSimilar` (native, trigram similarity across names and aliases)       |
-| IngredientAliasRepository     | `findByAlias`                                                                                                                      |
-| ReviewLineRepository (ingest) | `findNeedsReview` (paged JPQL that builds `ReviewLineResponse` directly), `findByNeedsReviewTrueAndParsedName`, `findAllRecipeIds` |
-| IngredientPriceRepository     | `findFirstByIngredientIdOrderByRecordedAtDesc` (latest price), `findByIngredientIdOrderByRecordedAtDesc` (history)                 |
-| FavoriteRepository            | `findByUserIdOrderByCreatedAtDesc`, `existsByUserIdAndRecipeId`, `deleteByUserIdAndRecipeId`                                       |
-| RecipeHistoryRepository       | `findTop20ByUserIdOrderByServedAtDesc`, `findByUserIdAndServedAtAfter`, `findRecentRecipeIds` (JPQL, for the planner)              |
-| MealPlanRepository            | `findByUserIdAndWeekStartDate`, `existsByUserIdAndWeekStartDate`, `findByUserIdOrderByWeekStartDateDesc`                           |
-| RefreshTokenRepository        | `findByTokenHash`, `deleteAllByUserId` (single `DELETE`)                                                                           |
-| AuthCodeRepository            | `findByUserIdAndType`, `deleteByUserIdAndType` (single `DELETE`)                                                                   |
+| Repository                    | Custom queries                                                                                                                                                                          |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| UserRepository                | `findByEmail`, `existsByEmail`                                                                                                                                                          |
+| UserPreferencesRepository     | `findByUserId`, `existsByUserId`                                                                                                                                                        |
+| DietaryLabelRepository        | `findAllByOrderByNameAsc`, `findByNameIgnoreCase`                                                                                                                                       |
+| RecipeRepository              | `findByNameContainingIgnoreCase`, `existsBySourceUrl`, `JpaSpecificationExecutor` for search, `findWithLabelsByIdIn` and `findWithIngredientsById` (fetch joins)                        |
+| IngredientRepository          | `findByFdcId`, `findByNameIgnoreCase`, `findByName`, `findMostSimilar` (native, trigram similarity across names and aliases)                                                            |
+| IngredientAliasRepository     | `findByAlias`                                                                                                                                                                           |
+| ReviewLineRepository (ingest) | `findNeedsReview` (paged JPQL that builds `ReviewLineResponse` directly), `findByNeedsReviewTrueAndParsedName`, `findAllRecipeIds`                                                      |
+| IngredientPriceRepository     | `findFirstByIngredientIdOrderByRecordedAtDesc` (latest price), `findByIngredientIdOrderByRecordedAtDesc` (history)                                                                      |
+| FavoriteRepository            | `existsByUserIdAndRecipeId`, `deleteByUserIdAndRecipeId`, `findFavoritedRecipeIds` (one query per page), `findRecipeIdsNewestFirst`, `insertIfAbsent` (native `on conflict do nothing`) |
+| RecipeHistoryRepository       | `findTop20ByUserIdOrderByServedAtDesc`, `findByUserIdAndServedAtAfter`, `findRecentRecipeIds` (JPQL, for the planner)                                                                   |
+| MealPlanRepository            | `findByUserIdAndWeekStartDate`, `existsByUserIdAndWeekStartDate`, `findByUserIdOrderByWeekStartDateDesc`                                                                                |
+| RefreshTokenRepository        | `findByTokenHash`, `deleteAllByUserId` (single `DELETE`)                                                                                                                                |
+| AuthCodeRepository            | `findByUserIdAndType`, `deleteByUserIdAndType` (single `DELETE`)                                                                                                                        |
 
 Child entities (RecipeStep, RecipeIngredient, IngredientPortion, PlannedMeal, GroceryListItem) have no repositories; they are saved through their parent via cascade.
 
@@ -409,6 +416,8 @@ Built:
 - `RecipeIngestService` + `RecipeImporter`: batch ingestion with one transaction per recipe (see Recipe Ingestion).
 - `IngredientReviewService`: the review queue and manual matching.
 - `RecipeReprocessService` + `RecipeReprocessor`: re-parse and re-match saved recipes from their raw text.
+- `RecipeQueryService`: search, detail with scaling, the favorites list, and `requireVisible` (404 for a missing or restricted recipe).
+- `FavoriteService`: idempotent add and remove.
 
 Planned:
 
@@ -477,6 +486,16 @@ Nutrition is never taken from the scrape; it's computed from matched `Ingredient
 
 `./mvnw test` runs about 100 tests. Parser, names, converter, calculators and classifiers are plain unit tests. `IngredientMatcherIntegrationTest` and `IngredientReviewServiceIntegrationTest` use `@SpringBootTest` with the `local` profile against the real database and seeded catalog; they roll back their changes. Every Spring test uses `@ActiveProfiles("local")` so they share one cached context (and one connection pool).
 
+## Recipe Browsing
+
+Every recipe route needs a Bearer token. The full design is in the Forkast Recipe Endpoints Plan doc.
+
+- **Hard filter:** a recipe without every label in the user's dietary restrictions never appears, in search, detail (404) or favorites (hidden, not deleted).
+- **Soft flags:** `RecipeFitEvaluator` compares per-serving nutrition with the user's **per-meal** targets and returns flags plus a sorting penalty: `OVER_MAX_CALORIES` (any amount over), `UNDER_PROTEIN_TARGET` (under 80%), `OVER_CARBS_TARGET` / `OVER_FAT_TARGET` (over 125%), `NUTRITION_INCOMPLETE`. Unset preferences raise nothing.
+- **Search:** filters are JPA `Specification`s combined with `Specification.allOf`. `fit` and `time` sort in Java over all matches; `protein`, `calories`, `mealPrep` and `newest` sort in SQL with nulls last. A page's cards take two extra queries (labels by fetch join, favorites by `in`), never one per recipe.
+- **Scaling:** `IngredientScaler` multiplies by `servings / baseServings` (default servings: the household size). Display amounts use cook-friendly fractions for volume and count units, whole numbers for g/ml, and 2 decimals for oz/lb/kg/l. Under 1/4 cup steps down to tablespoons, and under 1 tbsp to teaspoons.
+- **Favorites:** `PUT` inserts with `on conflict do nothing`, so retries and races leave one row; `DELETE` always returns 204.
+
 ## Authentication
 
 Short-lived JWT access tokens plus hashed, database-stored refresh tokens, one per device. The full design and its reasoning are in the Forkast Auth Plan doc.
@@ -501,46 +520,46 @@ Short-lived JWT access tokens plus hashed, database-stored refresh tokens, one p
 
 ## API Routes
 
-| Method | Path                                                   | Auth    | Handler                   | Status                                                                                      |
-| ------ | ------------------------------------------------------ | ------- | ------------------------- | ------------------------------------------------------------------------------------------- |
-| GET    | /api/health                                            | Public  | HealthController          | **live**                                                                                    |
-| GET    | /api/dietary-labels                                    | Public  | DietaryLabelController    | **live**                                                                                    |
-| POST   | /api/auth/signup                                       | Public  | AuthController            | **live** (201)                                                                              |
-| POST   | /api/auth/verify-email                                 | Public  | AuthController            | **live**                                                                                    |
-| POST   | /api/auth/resend-verification                          | Public  | AuthController            | **live** (202)                                                                              |
-| POST   | /api/auth/login                                        | Public  | AuthController            | **live**                                                                                    |
-| POST   | /api/auth/refresh                                      | Public  | AuthController            | **live**                                                                                    |
-| POST   | /api/auth/logout                                       | Public  | AuthController            | **live** (204)                                                                              |
-| POST   | /api/auth/forgot-password                              | Public  | AuthController            | **live** (202)                                                                              |
-| POST   | /api/auth/reset-password                               | Public  | AuthController            | **live**                                                                                    |
-| PATCH  | /api/auth/password                                     | Bearer  | AuthController            | **live**                                                                                    |
-| POST   | /api/auth/email-change                                 | Bearer  | AuthController            | **live** (202)                                                                              |
-| POST   | /api/auth/email-change/confirm                         | Bearer  | AuthController            | **live**                                                                                    |
-| GET    | /api/users/me                                          | Bearer  | UserController            | **live**                                                                                    |
-| DELETE | /api/users/me                                          | Bearer  | UserController            | **live** (204)                                                                              |
-| PATCH  | /api/users/me                                          | Bearer  | UserController            | **live** (first and/or last name)                                                           |
-| GET    | /api/users/me/preferences                              | Bearer  | PreferencesController     | **live** (404 until set up)                                                                 |
-| POST   | /api/users/me/preferences                              | Bearer  | PreferencesController     | **live** (201; 409 if already set up)                                                       |
-| PUT    | /api/users/me/preferences                              | Bearer  | PreferencesController     | **live** (replaces all fields; `null` = no limit)                                           |
-| GET    | /api/recipes                                           | Public  | RecipeController          | planned (filters: labels, max time, text)                                                   |
-| GET    | /api/recipes/{id}                                      | Public  | RecipeController          | planned                                                                                     |
-| GET    | /api/recipes/{id}/scaled?servings=                     | Public  | RecipeController          | planned                                                                                     |
-| POST   | /api/recipes/{id}/favorite                             | Bearer  | FavoriteController        | planned                                                                                     |
-| DELETE | /api/recipes/{id}/favorite                             | Bearer  | FavoriteController        | planned                                                                                     |
-| POST   | /api/admin/ingredients/import                          | API key | AdminIngredientController | **live** (`{ingredients: [...]}`, up to 50; `{created, updated}`)                           |
-| POST   | /api/admin/recipes/ingest                              | API key | AdminRecipeController     | **live** (`{recipes: [...]}`, up to 25; `{created, skippedDuplicate, failed, needsReview}`) |
-| GET    | /api/admin/recipe-ingredients/needs-review?page=&size= | API key | AdminReviewController     | **live** (`{items, page, size, total}`)                                                     |
-| PATCH  | /api/admin/recipe-ingredients/{id}                     | API key | AdminReviewController     | **live** (`{ingredientId, saveAlias}`; `{id, ingredientName, alsoMatched}`)                 |
-| POST   | /api/admin/recipes/reprocess?rematchAll=               | API key | AdminReviewController     | **live** (`{recipes, linesReparsed, newlyMatched, stillNeedsReview, failed}`)               |
-| POST   | /api/meal-plans/generate                               | Bearer  | MealPlanController        | planned                                                                                     |
-| GET    | /api/meal-plans                                        | Bearer  | MealPlanController        | planned                                                                                     |
-| GET    | /api/meal-plans/{id}                                   | Bearer  | MealPlanController        | planned                                                                                     |
-| GET    | /api/meal-plans/{id}/calendar                          | Bearer  | MealPlanController        | planned                                                                                     |
-| DELETE | /api/meal-plans/{id}                                   | Bearer  | MealPlanController        | planned                                                                                     |
-| GET    | /api/meal-plans/{id}/grocery-list                      | Bearer  | GroceryListController     | planned                                                                                     |
-| PATCH  | /api/grocery-list-items/{id}                           | Bearer  | GroceryListController     | planned                                                                                     |
+| Method | Path                                                                        | Auth    | Handler                   | Status                                                                                      |
+| ------ | --------------------------------------------------------------------------- | ------- | ------------------------- | ------------------------------------------------------------------------------------------- |
+| GET    | /api/health                                                                 | Public  | HealthController          | **live**                                                                                    |
+| GET    | /api/dietary-labels                                                         | Public  | DietaryLabelController    | **live**                                                                                    |
+| POST   | /api/auth/signup                                                            | Public  | AuthController            | **live** (201)                                                                              |
+| POST   | /api/auth/verify-email                                                      | Public  | AuthController            | **live**                                                                                    |
+| POST   | /api/auth/resend-verification                                               | Public  | AuthController            | **live** (202)                                                                              |
+| POST   | /api/auth/login                                                             | Public  | AuthController            | **live**                                                                                    |
+| POST   | /api/auth/refresh                                                           | Public  | AuthController            | **live**                                                                                    |
+| POST   | /api/auth/logout                                                            | Public  | AuthController            | **live** (204)                                                                              |
+| POST   | /api/auth/forgot-password                                                   | Public  | AuthController            | **live** (202)                                                                              |
+| POST   | /api/auth/reset-password                                                    | Public  | AuthController            | **live**                                                                                    |
+| PATCH  | /api/auth/password                                                          | Bearer  | AuthController            | **live**                                                                                    |
+| POST   | /api/auth/email-change                                                      | Bearer  | AuthController            | **live** (202)                                                                              |
+| POST   | /api/auth/email-change/confirm                                              | Bearer  | AuthController            | **live**                                                                                    |
+| GET    | /api/users/me                                                               | Bearer  | UserController            | **live**                                                                                    |
+| DELETE | /api/users/me                                                               | Bearer  | UserController            | **live** (204)                                                                              |
+| PATCH  | /api/users/me                                                               | Bearer  | UserController            | **live** (first and/or last name)                                                           |
+| GET    | /api/users/me/preferences                                                   | Bearer  | PreferencesController     | **live** (404 until set up)                                                                 |
+| POST   | /api/users/me/preferences                                                   | Bearer  | PreferencesController     | **live** (201; 409 if already set up)                                                       |
+| PUT    | /api/users/me/preferences                                                   | Bearer  | PreferencesController     | **live** (replaces all fields; `null` = no limit)                                           |
+| GET    | /api/recipes?q=&labels=&minProtein=&maxCalories=&maxTime=&sort=&page=&size= | Bearer  | RecipeController          | **live** (page of summaries with `flags` and `favorite`)                                    |
+| GET    | /api/recipes/{id}?servings=                                                 | Bearer  | RecipeController          | **live** (scaled detail; 404 if missing or restricted)                                      |
+| PUT    | /api/recipes/{id}/favorite                                                  | Bearer  | FavoriteController        | **live** (204, idempotent)                                                                  |
+| DELETE | /api/recipes/{id}/favorite                                                  | Bearer  | FavoriteController        | **live** (204, idempotent)                                                                  |
+| GET    | /api/users/me/favorites?page=&size=                                         | Bearer  | FavoriteController        | **live** (newest first)                                                                     |
+| POST   | /api/admin/ingredients/import                                               | API key | AdminIngredientController | **live** (`{ingredients: [...]}`, up to 50; `{created, updated}`)                           |
+| POST   | /api/admin/recipes/ingest                                                   | API key | AdminRecipeController     | **live** (`{recipes: [...]}`, up to 25; `{created, skippedDuplicate, failed, needsReview}`) |
+| GET    | /api/admin/recipe-ingredients/needs-review?page=&size=                      | API key | AdminReviewController     | **live** (`{items, page, size, total}`)                                                     |
+| PATCH  | /api/admin/recipe-ingredients/{id}                                          | API key | AdminReviewController     | **live** (`{ingredientId, saveAlias}`; `{id, ingredientName, alsoMatched}`)                 |
+| POST   | /api/admin/recipes/reprocess?rematchAll=                                    | API key | AdminReviewController     | **live** (`{recipes, linesReparsed, newlyMatched, stillNeedsReview, failed}`)               |
+| POST   | /api/meal-plans/generate                                                    | Bearer  | MealPlanController        | planned                                                                                     |
+| GET    | /api/meal-plans                                                             | Bearer  | MealPlanController        | planned                                                                                     |
+| GET    | /api/meal-plans/{id}                                                        | Bearer  | MealPlanController        | planned                                                                                     |
+| GET    | /api/meal-plans/{id}/calendar                                               | Bearer  | MealPlanController        | planned                                                                                     |
+| DELETE | /api/meal-plans/{id}                                                        | Bearer  | MealPlanController        | planned                                                                                     |
+| GET    | /api/meal-plans/{id}/grocery-list                                           | Bearer  | GroceryListController     | planned                                                                                     |
+| PATCH  | /api/grocery-list-items/{id}                                                | Bearer  | GroceryListController     | planned                                                                                     |
 
-Controllers stay thin (bind, validate, delegate to a service). Success responses return the DTO with an explicit status; errors return ProblemDetail. Public recipe routes must be added to `SecurityConfig`'s public list when they are built. Admin routes require the `X-Admin-Key` header: `ApiKeyAuthenticationFilter` compares it in constant time and grants `ROLE_ADMIN`, and `/api/admin/**` requires that role, so a user's access token gets 403.
+Controllers stay thin (bind, validate, delegate to a service). Success responses return the DTO with an explicit status; errors return ProblemDetail. Recipe routes are Bearer-only, covered by `SecurityConfig`'s authenticated default. Admin routes require the `X-Admin-Key` header: `ApiKeyAuthenticationFilter` compares it in constant time and grants `ROLE_ADMIN`, and `/api/admin/**` requires that role, so a user's access token gets 403.
 
 ## Open Questions
 
@@ -559,6 +578,8 @@ Controllers stay thin (bind, validate, delegate to a service). Success responses
 - [ ] Catalog revisit after a larger scrape: new rows (white wine, pecorino, capers, olives, pine nuts...), aliases for pasta shapes and oils, and cooked versions of rice, pasta and grains ("cooked white rice" currently matches raw rice).
 - [ ] Use gram weights recipes give in parentheses ("1 cup (240g)") instead of portion lookups.
 - [ ] Integration tests run against Supabase; move them to Testcontainers (throwaway Postgres in Docker).
+- [ ] The review queue lists only unmatched lines; also list low-confidence fuzzy matches (score under about 0.8). "Cherry peppers" matched black pepper at 0.5+ and was never reviewed.
+- [ ] Recipe prices scraped from blogs are stripped by the parser; live prices will come from the pricing service.
 - [ ] Choose a production email provider, and send emails after the transaction commits.
 - [ ] Rate-limit login and code endpoints before public launch.
 - [ ] Scheduled cleanup of expired refresh tokens and auth codes.

@@ -110,6 +110,7 @@ public class Recipe {
     private List<RecipeStep> steps = new ArrayList<>();
 
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("position ASC")
     private List<RecipeIngredient> ingredients = new ArrayList<>();
 
     @ManyToMany
@@ -143,6 +144,7 @@ public class Recipe {
     }
 
     public void addIngredient(RecipeIngredient ingredient) {
+        ingredient.setPosition(ingredients.size() + 1);
         ingredients.add(ingredient);
         ingredient.setRecipe(this);
     }

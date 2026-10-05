@@ -76,6 +76,27 @@ public class IngredientLineParser {
     private static final Pattern PARENS = Pattern.compile("\\(([^)]*)\\)");
     private static final Pattern EDGE_PUNCTUATION = Pattern.compile("^[\\s,.;:*-]+|[\\s,.;:*-]+$");
 
+    /**
+     * Prices some blogs put in the line, like "($0.64)" or "(divided, $0.12**)".
+     * They're
+     * estimates from when the recipe was written; live prices come from the pricing
+     * service.
+     */
+    private static final Pattern PRICE = Pattern.compile(",?\\s*\\$\\s?\\d+(?:\\.\\d{1,2})?\\**");
+    private static final Pattern EMPTY_PARENS = Pattern.compile("\\(\\s*\\)");
+
+    /**
+     * A metric weight in parentheses after a unit word, like "1 pound (454g)
+     * rigatoni". It's
+     * the same quantity restated, and left in the prep note it wouldn't scale with
+     * the amount.
+     * Only after a word, so a container size like "1 (400g) can" still reaches
+     * CONTAINER.
+     */
+    private static final Pattern METRIC_WEIGHT = Pattern.compile(
+            "(?<=[A-Za-z.]\\s)\\(\\s*\\d+(?:\\.\\d+)?\\s*(?:g|grams?|ml)\\b\\s*,?\\s*",
+            Pattern.CASE_INSENSITIVE);
+
     private static final Map<Character, String> UNICODE_FRACTIONS = Map.ofEntries(
             Map.entry('½', "1/2"), Map.entry('⅓', "1/3"), Map.entry('⅔', "2/3"),
             Map.entry('¼', "1/4"), Map.entry('¾', "3/4"), Map.entry('⅕', "1/5"),
@@ -84,7 +105,7 @@ public class IngredientLineParser {
             Map.entry('⅜', "3/8"), Map.entry('⅝', "5/8"), Map.entry('⅞', "7/8"));
 
     public ParsedLine parse(String raw) {
-        String text = normalize(raw);
+        String text = stripPrices(normalize(raw));
         if (text.isEmpty() || text.endsWith(":")) {
             return ParsedLine.skipped(); // blank line or a section header like "For the sauce:"
         }
@@ -241,6 +262,17 @@ public class IngredientLineParser {
             return text.trim().substring(size.end());
         }
         return text;
+    }
+
+    /**
+     * Removes prices and restated metric weights:
+     * "1/4 cup (60g) olive oil ($0.64)" -> "1/4 cup olive oil"; "(divided, $0.12)"
+     * -> "(divided)".
+     */
+    static String stripPrices(String text) {
+        String withoutPrices = PRICE.matcher(text).replaceAll("");
+        withoutPrices = METRIC_WEIGHT.matcher(withoutPrices).replaceAll("(");
+        return EMPTY_PARENS.matcher(withoutPrices).replaceAll("").replaceAll("\\s+", " ").trim();
     }
 
     /**
