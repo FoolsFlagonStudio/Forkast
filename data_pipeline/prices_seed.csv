@@ -1,0 +1,5 @@
+# Hand-entered typical US prices for ingredients no other source covers. Fill this in once
+# the Kroger mapping (pricing step 6) shows which ingredients are still missing a price.
+# Lines starting with # are ignored. size is read like a store label: 1 lb, 16 oz, 1 dozen, 12 ct.
+# Editing a price and re-running adds a new row; unchanged rows are skipped.
+ingredient,price,size,note

@@ -2,7 +2,7 @@
 
 Spring Boot API for Forkast. It owns all data access: recipes, ingredient matching, nutrition, pricing, dietary labels, meal plan generation, and grocery lists.
 
-> **Status:** the data model, Flyway migrations (V1 to V7), authentication, user preferences, the recipe ingestion pipeline, and recipe browsing are complete. Live endpoints: `GET /api/health`, `GET /api/dietary-labels`, the 11 `/api/auth/*` routes, `GET`/`PATCH`/`DELETE /api/users/me`, `GET`/`POST`/`PUT /api/users/me/preferences`, recipe search, detail and favorites, and the 5 `/api/admin/*` ingestion routes. The meal plan generator is next.
+> **Status:** the data model, Flyway migrations (V1 to V8), authentication, user preferences, the recipe ingestion pipeline, recipe browsing, and pricing are complete. Live endpoints: `GET /api/health`, `GET /api/dietary-labels`, the 11 `/api/auth/*` routes, `GET`/`PATCH`/`DELETE /api/users/me`, `GET`/`POST`/`PUT /api/users/me/preferences`, recipe search, detail and favorites (with cost), the 5 `/api/admin/*` ingestion routes and the 4 `/api/admin/prices/*` routes. A scheduled job refreshes Kroger prices weekly. The meal plan generator is next.
 
 ## Local Setup
 
@@ -33,6 +33,13 @@ forkast.admin.api-key=<64 hex characters>
 
 # Supabase's session pooler allows 15 connections in total; leave room for tests and the dashboard
 spring.datasource.hikari.maximum-pool-size=5
+
+# Kroger developer app (client credentials). Same values as KROGER_* in data_pipeline/.env
+forkast.pricing.kroger.client-id=<client id>
+forkast.pricing.kroger.client-secret=<client secret>
+
+# Restart only when this file changes, so saving a half-written migration doesn't run it
+spring.devtools.restart.trigger-file=.reloadtrigger
 ```
 
 The committed `application.properties` contains:
@@ -54,6 +61,7 @@ Notes:
 - `ddl-auto` must stay `validate`. Flyway owns the schema; Hibernate only checks that entities match it.
 - The app refuses to start if `forkast.auth.jwt-secret` is missing or shorter than 32 bytes, or if `forkast.admin.api-key` is shorter than 32 characters (`AdminProperties` needs `@NotBlank` as well as `@Size(min = 32)` to also reject a missing key).
 - Keep the pool small. The dev server and the test suite each open a pool, and with the default of 10 connections each they exceed Supabase's 15-client session limit (`EMAXCONNSESSION`).
+- Without Kroger credentials the app still starts; the weekly refresh logs that Kroger is off and `POST /api/admin/prices/refresh` returns 400. Prices then come only from imports (BLS, seed). The other pricing settings have defaults; see Pricing.
 - The `local` profile enables `LoggingEmailService`, which prints verification and reset codes to the console instead of sending email. Without the `local` profile there is no email service yet, so the app will not start.
 
 ### Run
@@ -71,15 +79,16 @@ On startup, Flyway applies any pending migrations to an empty database, so no ma
 
 The schema is defined by versioned SQL migrations in `src/main/resources/db/migration/`:
 
-| Migration                            | Contents                                                                                                                                                                                                                                                                                                  |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `V1__initial_schema.sql`             | All 16 domain tables, constraints, indexes, and foreign keys                                                                                                                                                                                                                                              |
-| `V2__auth.sql`                       | `users.is_verified`, `password_changed_at`, `last_login_at`; `refresh_tokens` and `auth_codes` tables                                                                                                                                                                                                     |
-| `V3__cascade_user_deletes.sql`       | Foreign keys to `users` (and their children) cascade on delete, for account deletion                                                                                                                                                                                                                      |
-| `V4__seed_dietary_labels.sql`        | Inserts the 10 starter dietary labels                                                                                                                                                                                                                                                                     |
-| `V5__preferences_meal_slots.sql`     | `user_preferences.plan_start_day` and `prefers_meal_prep`; `user_meal_slots` table                                                                                                                                                                                                                        |
-| `V6__recipe_pipeline.sql`            | `pg_trgm` (in the `extensions` schema); recipe source, image, category, cuisine, keywords, meal-prep score and per-serving nutrition columns; `ingredient_aliases` and `ingredient_tags` tables; trigram indexes on ingredient names and aliases; `parsed_name` and `match_score` on `recipe_ingredients` |
-| `V7__recipe_ingredient_position.sql` | `recipe_ingredients.position`, backfilled per recipe in insert order, so lines come back in the order the recipe lists them                                                                                                                                                                               |
+| Migration                            | Contents                                                                                                                                                                                                                                                                                                                                |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `V1__initial_schema.sql`             | All 16 domain tables, constraints, indexes, and foreign keys                                                                                                                                                                                                                                                                            |
+| `V2__auth.sql`                       | `users.is_verified`, `password_changed_at`, `last_login_at`; `refresh_tokens` and `auth_codes` tables                                                                                                                                                                                                                                   |
+| `V3__cascade_user_deletes.sql`       | Foreign keys to `users` (and their children) cascade on delete, for account deletion                                                                                                                                                                                                                                                    |
+| `V4__seed_dietary_labels.sql`        | Inserts the 10 starter dietary labels                                                                                                                                                                                                                                                                                                   |
+| `V5__preferences_meal_slots.sql`     | `user_preferences.plan_start_day` and `prefers_meal_prep`; `user_meal_slots` table                                                                                                                                                                                                                                                      |
+| `V6__recipe_pipeline.sql`            | `pg_trgm` (in the `extensions` schema); recipe source, image, category, cuisine, keywords, meal-prep score and per-serving nutrition columns; `ingredient_aliases` and `ingredient_tags` tables; trigram indexes on ingredient names and aliases; `parsed_name` and `match_score` on `recipe_ingredients`                               |
+| `V7__recipe_ingredient_position.sql` | `recipe_ingredients.position`, backfilled per recipe in insert order, so lines come back in the order the recipe lists them                                                                                                                                                                                                             |
+| `V8__pricing.sql`                    | `ingredient_products` table (which store product stands in for each ingredient); `KROGER`, `BLS`, `SEED` price sources (V1's unnamed check is found and replaced); `promo_price`, `external_id`, `size_text`, `sold_by`, `price_per_100g`, `price_per_item` on `ingredient_prices`; `cost_per_serving` and `cost_complete` on `recipes` |
 
 On startup, Flyway runs any migrations not yet recorded in the `flyway_schema_history` table, in version order. Hibernate then runs with `ddl-auto=validate` and refuses to start if an entity doesn't match the schema.
 
@@ -123,11 +132,19 @@ src/main/java/com/forkast/backend/
 │                 IngredientImportService, IngredientReviewService,
 │                 ReviewLineRepository, admin controllers, request/response records
 ├── ingredient/   Ingredient, IngredientPortion, IngredientAlias, IngredientTag,
-│                 IngredientPrice, PriceSource, IngredientMatcher, IngredientNames,
-│                 MatchResult, SimilarityHit, IngredientRepository,
-│                 IngredientAliasRepository, IngredientPriceRepository
+│                 IngredientPrice, IngredientProduct, PriceSource, SoldBy,
+│                 IngredientMatcher, IngredientNames, MatchResult, SimilarityHit,
+│                 IngredientRepository, IngredientAliasRepository,
+│                 IngredientPriceRepository, IngredientProductRepository
 ├── mealplan/     MealPlan, PlannedMeal, GroceryListItem, MealSlot, MealPlanRepository
 ├── email/        EmailService, LoggingEmailService (local profile)
+├── pricing/      PackageSizeParser, UnitPriceCalculator, PriceResolver,
+│                 CurrentPriceService, RecipeCostCalculator, RecipeCostService,
+│                 RecipeCostBatch, PriceImportService, ProductMappingService,
+│                 IngredientLookup, PricingProperties, AdminPriceController,
+│                 request/response records
+│   └── kroger/   KrogerClient, KrogerProperties, KrogerProduct, KrogerQuote,
+│                 KrogerPriceWriter, KrogerRefreshService, KrogerRefreshScheduler
 ├── recipe/       Recipe, RecipeStep, RecipeIngredient, RecipeRepository,
 │                 RecipeQueryService, RecipeController, RecipeDetailResponse
 │   ├── fit/      RecipeFitEvaluator, FitTargets, RecipeNutrition, FitFlag, FitResult
@@ -248,6 +265,8 @@ erDiagram
 | mealPrepScore                                                            | int                     | 0 to 100, from `MealPrepClassifier`                                                   |
 | caloriesPerServing, proteinGPerServing, carbsGPerServing, fatGPerServing | BigDecimal(7,2)         | from `NutritionCalculator`; set together by `setNutrition`                            |
 | nutritionComplete                                                        | boolean                 | true only when every required line converted to grams                                 |
+| costPerServing                                                           | BigDecimal(8,2)         | estimated USD from `RecipeCostCalculator`; null when no line could be priced          |
+| costComplete                                                             | boolean                 | true only when every required line was priced; set with `costPerServing` by `setCost` |
 | steps                                                                    | List\<RecipeStep>       | ordered by stepNumber                                                                 |
 | ingredients                                                              | List\<RecipeIngredient> | ordered by `position`; `addIngredient` numbers each line                              |
 | dietaryLabels                                                            | Set\<DietaryLabel>      | M:N via `recipe_dietary_labels`                                                       |
@@ -295,21 +314,29 @@ Matching is done through `matchIngredient(ingredient, score)` (links and clears 
 
 **IngredientPortion** (`ingredient_portions`): `id`, `ingredient` (FK), `description` (the weight of ONE unit, e.g. "cup, chopped" or "large"), `gramWeight` (BigDecimal(8,2), positive). Unique on `(ingredient_id, description)`. This is the density table for volume-to-mass conversion, sourced from FDC `foodPortions`.
 
-**IngredientPrice** (`ingredient_prices`): immutable price observation.
+**IngredientPrice** (`ingredient_prices`): immutable price observation. A new price is a new row, so the table is the price history.
 
-| Field      | Type             | Notes                                                    |
-| ---------- | ---------------- | -------------------------------------------------------- |
-| id         | UUID             | PK                                                       |
-| ingredient | Ingredient       | FK, not null                                             |
-| storeName  | String           | nullable                                                 |
-| price      | BigDecimal(10,2) | positive                                                 |
-| quantity   | BigDecimal(10,3) | positive; the amount the price buys                      |
-| unit       | String           | not null                                                 |
-| currency   | String(3)        | ISO code, uppercased                                     |
-| source     | PriceSource      | `OPEN_PRICES` or `MANUAL`                                |
-| recordedAt | Instant          | when the price was observed (not when the row was saved) |
+| Field        | Type             | Notes                                                              |
+| ------------ | ---------------- | ------------------------------------------------------------------ |
+| id           | UUID             | PK                                                                 |
+| ingredient   | Ingredient       | FK, not null                                                       |
+| storeName    | String           | nullable ("Kroger 01400513", "BLS U.S. city average")              |
+| price        | BigDecimal(10,2) | positive; the regular price                                        |
+| promoPrice   | BigDecimal(10,2) | nullable; the sale price, when there is one                        |
+| quantity     | BigDecimal(10,3) | positive; the amount the price buys                                |
+| unit         | String           | not null; lowercase `Unit` name (`lb`, `fl_oz`, `count`)           |
+| currency     | String(3)        | ISO code, uppercased                                               |
+| source       | PriceSource      | `OPEN_PRICES`, `MANUAL`, `KROGER`, `BLS` or `SEED`                 |
+| externalId   | String           | nullable; the source's id (Kroger product id, BLS series id)       |
+| sizeText     | String           | nullable; the size as the source wrote it ("3 lb", "30 fo")        |
+| soldBy       | SoldBy           | nullable; Kroger's `WEIGHT` (price per lb) or `UNIT` (per package) |
+| pricePer100g | BigDecimal(10,4) | nullable; computed when stored                                     |
+| pricePerItem | BigDecimal(10,4) | nullable; computed when stored                                     |
+| recordedAt   | Instant          | when the price was observed (not when the row was saved)           |
 
-Indexed on `(ingredient_id, recorded_at)`. `IngredientPrice.manual(...)` is a factory for user-entered prices (USD, `MANUAL`, now). Open Prices data is barcode-level and needs its own fuzzy match to `Ingredient`, separate from the FDC match.
+Indexed on `(ingredient_id, recorded_at)`. Built with `IngredientPrice.builder(ingredient, source, price, quantity, unit)` and named calls for the optional fields; `manual(...)` remains for user-entered prices. A row with neither unit price (a size that couldn't be read) is kept for the record but never used for cost.
+
+**IngredientProduct** (`ingredient_products`): which product at a source stands in for an ingredient (Kroger product `0000000004093` for onion). `id`, `ingredient` (FK, cascade), `source`, `externalId`, `label`, `active`, timestamps. Unique on `(ingredient_id, source, external_id)`, so an ingredient can have backups but the same product only once. Switching a product off (`deactivate()`) keeps its price history but stops it counting (see Pricing).
 
 ### favorite
 
@@ -367,19 +394,20 @@ Unique on `(meal_plan_id, ingredient_id, unit)`, so shared ingredients combine i
 
 Entity methods only touch data the entity (and its loaded associations) already holds. Anything that needs a repository, `PasswordEncoder`, or external API belongs in a service, because Hibernate creates entities outside Spring's bean lifecycle.
 
-| Entity           | Implemented                                                                                                               | Planned                                                                                   |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Recipe           | `getTotalTimeMinutes()`, add/remove for steps, ingredients, labels, `setSource()`, `setNutrition()`, `setMealPrepScore()` | `scaleIngredientsTo(servings)`, `nutritionPerServing()`, `matchesAllRestrictions(labels)` |
-| RecipeIngredient | `matchIngredient(ingredient, score)`, `flagForReview(score)`, `unmatchIngredient()`                                       | `scaledAmount(multiplier)`, `convertTo(unit)`, `nutritionContribution()`                  |
-| Ingredient       | `addPortion()`, `removePortion()`, `replacePortions()`, `addAlias()`, `replaceTags()`                                     | `gramsForPortion(description)`, `gramWeightForUnit(unit)`                                 |
-| IngredientPrice  | `manual(...)` factory                                                                                                     | `isStale(maxAge)`                                                                         |
-| UserPreferences  | `replaceDietaryRestrictions()`, `replaceMealSlots()`, `setWeeklyBudget()` (normalized to 2 decimals)                      | `hasNutritionConstraints()`, `isCompatibleWith(recipe)`, `perMealBudget(mealCount)`       |
-| MealPlan         | `getEstimatedTotalCost()`, `isOverBudget()`, `clearGroceryList()`, add/remove helpers                                     | `totalNutrition()`                                                                        |
-| PlannedMeal      | `moveTo(day, slot)`                                                                                                       | `scaledServings()`, `nutritionTotal()`                                                    |
-| GroceryListItem  | `addAmount()`, `markPurchased()`, `markUnpurchased()`                                                                     |                                                                                           |
-| User             | `changePassword()`, `changeEmail()`, `markVerified()`, `recordLogin()`                                                    |                                                                                           |
-| RefreshToken     | `isExpired(now)`                                                                                                          |                                                                                           |
-| AuthCode         | `isExpired(now)`, `isLocked(max)`, `recordFailedAttempt()`                                                                |                                                                                           |
+| Entity            | Implemented                                                                                                                            | Planned                                                                                   |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Recipe            | `getTotalTimeMinutes()`, add/remove for steps, ingredients, labels, `setSource()`, `setNutrition()`, `setMealPrepScore()`, `setCost()` | `scaleIngredientsTo(servings)`, `nutritionPerServing()`, `matchesAllRestrictions(labels)` |
+| RecipeIngredient  | `matchIngredient(ingredient, score)`, `flagForReview(score)`, `unmatchIngredient()`                                                    | `scaledAmount(multiplier)`, `convertTo(unit)`, `nutritionContribution()`                  |
+| Ingredient        | `addPortion()`, `removePortion()`, `replacePortions()`, `addAlias()`, `replaceTags()`                                                  | `gramsForPortion(description)`, `gramWeightForUnit(unit)`                                 |
+| IngredientPrice   | `builder(...)`, `manual(...)`, `hasUnitPrice()`                                                                                        |                                                                                           |
+| IngredientProduct | `activate()`, `deactivate()`, `setLabel()`                                                                                             |                                                                                           |
+| UserPreferences   | `replaceDietaryRestrictions()`, `replaceMealSlots()`, `setWeeklyBudget()` (normalized to 2 decimals)                                   | `hasNutritionConstraints()`, `isCompatibleWith(recipe)`, `perMealBudget(mealCount)`       |
+| MealPlan          | `getEstimatedTotalCost()`, `isOverBudget()`, `clearGroceryList()`, add/remove helpers                                                  | `totalNutrition()`                                                                        |
+| PlannedMeal       | `moveTo(day, slot)`                                                                                                                    | `scaledServings()`, `nutritionTotal()`                                                    |
+| GroceryListItem   | `addAmount()`, `markPurchased()`, `markUnpurchased()`                                                                                  |                                                                                           |
+| User              | `changePassword()`, `changeEmail()`, `markVerified()`, `recordLogin()`                                                                 |                                                                                           |
+| RefreshToken      | `isExpired(now)`                                                                                                                       |                                                                                           |
+| AuthCode          | `isExpired(now)`, `isLocked(max)`, `recordFailedAttempt()`                                                                             |                                                                                           |
 
 Optional ingredients (`RecipeIngredient.optional = true`) will be excluded from grocery aggregation, cost totals, and nutrition totals, and listed separately as optional additions.
 
@@ -390,11 +418,12 @@ Optional ingredients (`RecipeIngredient.optional = true`) will be excluded from 
 | UserRepository                | `findByEmail`, `existsByEmail`                                                                                                                                                          |
 | UserPreferencesRepository     | `findByUserId`, `existsByUserId`                                                                                                                                                        |
 | DietaryLabelRepository        | `findAllByOrderByNameAsc`, `findByNameIgnoreCase`                                                                                                                                       |
-| RecipeRepository              | `findByNameContainingIgnoreCase`, `existsBySourceUrl`, `JpaSpecificationExecutor` for search, `findWithLabelsByIdIn` and `findWithIngredientsById` (fetch joins)                        |
+| RecipeRepository              | `findByNameContainingIgnoreCase`, `existsBySourceUrl`, `findAllIds`, `JpaSpecificationExecutor` for search, `findWithLabelsByIdIn` and `findWithIngredientsById` (fetch joins)          |
 | IngredientRepository          | `findByFdcId`, `findByNameIgnoreCase`, `findByName`, `findMostSimilar` (native, trigram similarity across names and aliases)                                                            |
 | IngredientAliasRepository     | `findByAlias`                                                                                                                                                                           |
 | ReviewLineRepository (ingest) | `findNeedsReview` (paged JPQL that builds `ReviewLineResponse` directly), `findByNeedsReviewTrueAndParsedName`, `findAllRecipeIds`                                                      |
-| IngredientPriceRepository     | `findFirstByIngredientIdOrderByRecordedAtDesc` (latest price), `findByIngredientIdOrderByRecordedAtDesc` (history)                                                                      |
+| IngredientPriceRepository     | `findFirstByIngredientIdOrderByRecordedAtDesc`, `findByIngredientIdOrderByRecordedAtDesc`, `findByIngredientIds` (one query for many ingredients), the import's duplicate checks        |
+| IngredientProductRepository   | `findActiveWithIngredient(source)` (fetch join, for the refresh), `findByIngredientIdAndSource`, `findByIngredientIdAndSourceAndExternalId`, `findByActiveFalse`                        |
 | FavoriteRepository            | `existsByUserIdAndRecipeId`, `deleteByUserIdAndRecipeId`, `findFavoritedRecipeIds` (one query per page), `findRecipeIdsNewestFirst`, `insertIfAbsent` (native `on conflict do nothing`) |
 | RecipeHistoryRepository       | `findTop20ByUserIdOrderByServedAtDesc`, `findByUserIdAndServedAtAfter`, `findRecentRecipeIds` (JPQL, for the planner)                                                                   |
 | MealPlanRepository            | `findByUserIdAndWeekStartDate`, `existsByUserIdAndWeekStartDate`, `findByUserIdOrderByWeekStartDateDesc`                                                                                |
@@ -418,11 +447,11 @@ Built:
 - `RecipeReprocessService` + `RecipeReprocessor`: re-parse and re-match saved recipes from their raw text.
 - `RecipeQueryService`: search, detail with scaling, the favorites list, and `requireVisible` (404 for a missing or restricted recipe).
 - `FavoriteService`: idempotent add and remove.
+- `CurrentPriceService`, `RecipeCostService`, `PriceImportService`, `ProductMappingService`, `KrogerRefreshService`: see Pricing.
 
 Planned:
 
-- `IngredientPricingService`: latest-price lookups and cost estimates (`estimatedCostFor`, per-meal and grocery pricing).
-- `MealPlanGeneratorService`: the constraint-satisfaction planner.
+- `MealPlanGeneratorService`: the budget-aware weekly planner, and the grocery list.
 
 ## Recipe Ingestion
 
@@ -441,7 +470,7 @@ About 150 curated ingredients from `data_pipeline/ingredients_seed.csv`, each ma
 3. Save steps in order.
 4. Parse each line with `IngredientLineParser`; section headers ("For the sauce:") are dropped.
 5. Match each parsed name with `IngredientMatcher`; weak matches are saved with `needsReview = true`.
-6. `RecipeEnricher` computes nutrition, dietary labels and the meal-prep score.
+6. `RecipeEnricher` computes nutrition, dietary labels, the meal-prep score and the cost per serving.
 
 ### Parser
 
@@ -484,7 +513,7 @@ Nutrition is never taken from the scrape; it's computed from matched `Ingredient
 
 ### Tests
 
-`./mvnw test` runs about 100 tests. Parser, names, converter, calculators and classifiers are plain unit tests. `IngredientMatcherIntegrationTest` and `IngredientReviewServiceIntegrationTest` use `@SpringBootTest` with the `local` profile against the real database and seeded catalog; they roll back their changes. Every Spring test uses `@ActiveProfiles("local")` so they share one cached context (and one connection pool).
+`./mvnw test` runs about 225 tests (pricing included). Parser, names, converter, calculators and classifiers are plain unit tests. `IngredientMatcherIntegrationTest` and `IngredientReviewServiceIntegrationTest` use `@SpringBootTest` with the `local` profile against the real database and seeded catalog; they roll back their changes. Every Spring test uses `@ActiveProfiles("local")` so they share one cached context (and one connection pool).
 
 ## Recipe Browsing
 
@@ -492,9 +521,43 @@ Every recipe route needs a Bearer token. The full design is in the Forkast Recip
 
 - **Hard filter:** a recipe without every label in the user's dietary restrictions never appears, in search, detail (404) or favorites (hidden, not deleted).
 - **Soft flags:** `RecipeFitEvaluator` compares per-serving nutrition with the user's **per-meal** targets and returns flags plus a sorting penalty: `OVER_MAX_CALORIES` (any amount over), `UNDER_PROTEIN_TARGET` (under 80%), `OVER_CARBS_TARGET` / `OVER_FAT_TARGET` (over 125%), `NUTRITION_INCOMPLETE`. Unset preferences raise nothing.
-- **Search:** filters are JPA `Specification`s combined with `Specification.allOf`. `fit` and `time` sort in Java over all matches; `protein`, `calories`, `mealPrep` and `newest` sort in SQL with nulls last. A page's cards take two extra queries (labels by fetch join, favorites by `in`), never one per recipe.
+- **Search:** filters are JPA `Specification`s combined with `Specification.allOf`; `maxCost` (per serving) leaves out recipes with no cost, like `maxCalories`. `fit` and `time` sort in Java over all matches; `protein`, `calories`, `mealPrep`, `newest` and `cost` sort in SQL with nulls last.
+- **Cost:** cards and detail show `costPerServing` and `costComplete`; detail adds `estimatedCost` (per serving x the servings asked for). A page's cards take two extra queries (labels by fetch join, favorites by `in`), never one per recipe.
 - **Scaling:** `IngredientScaler` multiplies by `servings / baseServings` (default servings: the household size). Display amounts use cook-friendly fractions for volume and count units, whole numbers for g/ml, and 2 decimals for oz/lb/kg/l. Under 1/4 cup steps down to tablespoons, and under 1 tbsp to teaspoons.
 - **Favorites:** `PUT` inserts with `on conflict do nothing`, so retries and races leave one row; `DELETE` always returns 204.
+
+## Pricing
+
+The full design and the test-run findings are in the Forkast Pricing Plan doc. The app never calls a price source while a user waits: prices are stored as `IngredientPrice` history, and recipes store their cost.
+
+**Sources.**
+
+| Source | How it arrives                                                                                        | Role                   |
+| ------ | ----------------------------------------------------------------------------------------------------- | ---------------------- |
+| Kroger | `KrogerRefreshService` re-prices every active `ingredient_products` row, one product per call, weekly | Live source            |
+| BLS    | `import_prices.py bls`: US city-average prices for about 23 staples, dated at their month's end       | Fallback, sanity check |
+| Seed   | `import_prices.py seed` from `prices_seed.csv`                                                        | Last resort for gaps   |
+
+Prices come from one store, Kroger On the Rhine in Cincinnati (`01400513`), as one national estimate.
+
+**Unit prices.** `PackageSizeParser` reads sizes ("3 lb", "16.9 fl oz", "30 fo", "1/2 gal", "12 ct", "12 x 12 fl oz"). `UnitPriceCalculator` turns price + size into a price per 100 g (grams from `UnitConverter`, the same conversion recipes use) and, for counts, a price per item. Kroger items sold by `WEIGHT` are priced per lb. Counted packages ("1 ct" celery) use the package weight Kroger gives and never the catalog's portions, which could be off twenty times (a bunch is not a celery strip). Loose produce gets a price per item from Kroger's average weight.
+
+**Resolving a price.** `PriceResolver` picks one price per ingredient: Kroger within 14 days, then BLS within 60 days, then the newest real price (marked stale), then the seed price, then none. Within a step each product counts once with its latest price and the cheapest wins, per 100 g and per item separately. `CurrentPriceService` loads history in one query and drops prices of switched-off products, so a replaced wrong pick (lemon soda for lemons) stops counting at once.
+
+**Recipe cost.** `RecipeCostCalculator` mirrors nutrition: the same lines count, each costs its grams x price per 100 g, a count line falls back to price per item, and water and ice are free. `costComplete` is false if any required line has no price or can't be converted; the stored number then covers the rest. It's the cost of what the recipe uses, not of whole packages (that's the grocery list). `RecipeEnricher` sets it on ingest, review and reprocess; `RecipeCostService` recalculates every recipe after an import or refresh, resolving prices once and updating 100 recipes per transaction.
+
+**Settings** (all have defaults):
+
+| Property                                  | Default                     | Meaning                                               |
+| ----------------------------------------- | --------------------------- | ----------------------------------------------------- |
+| `forkast.pricing.live-max-age`            | `14d`                       | How long a Kroger price counts as current             |
+| `forkast.pricing.bls-max-age`             | `60d`                       | How long a BLS month counts as current                |
+| `forkast.pricing.refresh-cron`            | `0 0 6 * * MON`             | Weekly refresh, Eastern time; `-` turns it off        |
+| `forkast.pricing.kroger.base-url`         | `https://api-ce.kroger.com` | Certification; `https://api.kroger.com` in production |
+| `forkast.pricing.kroger.location-id`      | `01400513`                  | The store prices come from                            |
+| `forkast.pricing.kroger.request-delay-ms` | `250`                       | Pause between product calls                           |
+
+**Product mapping.** `data_pipeline/find_product.py` searches Kroger, writes the best guess per ingredient to `kroger_products.csv` for review, and posts it to `/api/admin/prices/products` (see [../data_pipeline/README.md](../data_pipeline/README.md#prices)).
 
 ## Authentication
 
@@ -520,50 +583,54 @@ Short-lived JWT access tokens plus hashed, database-stored refresh tokens, one p
 
 ## API Routes
 
-| Method | Path                                                                        | Auth    | Handler                   | Status                                                                                      |
-| ------ | --------------------------------------------------------------------------- | ------- | ------------------------- | ------------------------------------------------------------------------------------------- |
-| GET    | /api/health                                                                 | Public  | HealthController          | **live**                                                                                    |
-| GET    | /api/dietary-labels                                                         | Public  | DietaryLabelController    | **live**                                                                                    |
-| POST   | /api/auth/signup                                                            | Public  | AuthController            | **live** (201)                                                                              |
-| POST   | /api/auth/verify-email                                                      | Public  | AuthController            | **live**                                                                                    |
-| POST   | /api/auth/resend-verification                                               | Public  | AuthController            | **live** (202)                                                                              |
-| POST   | /api/auth/login                                                             | Public  | AuthController            | **live**                                                                                    |
-| POST   | /api/auth/refresh                                                           | Public  | AuthController            | **live**                                                                                    |
-| POST   | /api/auth/logout                                                            | Public  | AuthController            | **live** (204)                                                                              |
-| POST   | /api/auth/forgot-password                                                   | Public  | AuthController            | **live** (202)                                                                              |
-| POST   | /api/auth/reset-password                                                    | Public  | AuthController            | **live**                                                                                    |
-| PATCH  | /api/auth/password                                                          | Bearer  | AuthController            | **live**                                                                                    |
-| POST   | /api/auth/email-change                                                      | Bearer  | AuthController            | **live** (202)                                                                              |
-| POST   | /api/auth/email-change/confirm                                              | Bearer  | AuthController            | **live**                                                                                    |
-| GET    | /api/users/me                                                               | Bearer  | UserController            | **live**                                                                                    |
-| DELETE | /api/users/me                                                               | Bearer  | UserController            | **live** (204)                                                                              |
-| PATCH  | /api/users/me                                                               | Bearer  | UserController            | **live** (first and/or last name)                                                           |
-| GET    | /api/users/me/preferences                                                   | Bearer  | PreferencesController     | **live** (404 until set up)                                                                 |
-| POST   | /api/users/me/preferences                                                   | Bearer  | PreferencesController     | **live** (201; 409 if already set up)                                                       |
-| PUT    | /api/users/me/preferences                                                   | Bearer  | PreferencesController     | **live** (replaces all fields; `null` = no limit)                                           |
-| GET    | /api/recipes?q=&labels=&minProtein=&maxCalories=&maxTime=&sort=&page=&size= | Bearer  | RecipeController          | **live** (page of summaries with `flags` and `favorite`)                                    |
-| GET    | /api/recipes/{id}?servings=                                                 | Bearer  | RecipeController          | **live** (scaled detail; 404 if missing or restricted)                                      |
-| PUT    | /api/recipes/{id}/favorite                                                  | Bearer  | FavoriteController        | **live** (204, idempotent)                                                                  |
-| DELETE | /api/recipes/{id}/favorite                                                  | Bearer  | FavoriteController        | **live** (204, idempotent)                                                                  |
-| GET    | /api/users/me/favorites?page=&size=                                         | Bearer  | FavoriteController        | **live** (newest first)                                                                     |
-| POST   | /api/admin/ingredients/import                                               | API key | AdminIngredientController | **live** (`{ingredients: [...]}`, up to 50; `{created, updated}`)                           |
-| POST   | /api/admin/recipes/ingest                                                   | API key | AdminRecipeController     | **live** (`{recipes: [...]}`, up to 25; `{created, skippedDuplicate, failed, needsReview}`) |
-| GET    | /api/admin/recipe-ingredients/needs-review?page=&size=                      | API key | AdminReviewController     | **live** (`{items, page, size, total}`)                                                     |
-| PATCH  | /api/admin/recipe-ingredients/{id}                                          | API key | AdminReviewController     | **live** (`{ingredientId, saveAlias}`; `{id, ingredientName, alsoMatched}`)                 |
-| POST   | /api/admin/recipes/reprocess?rematchAll=                                    | API key | AdminReviewController     | **live** (`{recipes, linesReparsed, newlyMatched, stillNeedsReview, failed}`)               |
-| POST   | /api/meal-plans/generate                                                    | Bearer  | MealPlanController        | planned                                                                                     |
-| GET    | /api/meal-plans                                                             | Bearer  | MealPlanController        | planned                                                                                     |
-| GET    | /api/meal-plans/{id}                                                        | Bearer  | MealPlanController        | planned                                                                                     |
-| GET    | /api/meal-plans/{id}/calendar                                               | Bearer  | MealPlanController        | planned                                                                                     |
-| DELETE | /api/meal-plans/{id}                                                        | Bearer  | MealPlanController        | planned                                                                                     |
-| GET    | /api/meal-plans/{id}/grocery-list                                           | Bearer  | GroceryListController     | planned                                                                                     |
-| PATCH  | /api/grocery-list-items/{id}                                                | Bearer  | GroceryListController     | planned                                                                                     |
+| Method | Path                                                                                 | Auth    | Handler                   | Status                                                                                                       |
+| ------ | ------------------------------------------------------------------------------------ | ------- | ------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| GET    | /api/health                                                                          | Public  | HealthController          | **live**                                                                                                     |
+| GET    | /api/dietary-labels                                                                  | Public  | DietaryLabelController    | **live**                                                                                                     |
+| POST   | /api/auth/signup                                                                     | Public  | AuthController            | **live** (201)                                                                                               |
+| POST   | /api/auth/verify-email                                                               | Public  | AuthController            | **live**                                                                                                     |
+| POST   | /api/auth/resend-verification                                                        | Public  | AuthController            | **live** (202)                                                                                               |
+| POST   | /api/auth/login                                                                      | Public  | AuthController            | **live**                                                                                                     |
+| POST   | /api/auth/refresh                                                                    | Public  | AuthController            | **live**                                                                                                     |
+| POST   | /api/auth/logout                                                                     | Public  | AuthController            | **live** (204)                                                                                               |
+| POST   | /api/auth/forgot-password                                                            | Public  | AuthController            | **live** (202)                                                                                               |
+| POST   | /api/auth/reset-password                                                             | Public  | AuthController            | **live**                                                                                                     |
+| PATCH  | /api/auth/password                                                                   | Bearer  | AuthController            | **live**                                                                                                     |
+| POST   | /api/auth/email-change                                                               | Bearer  | AuthController            | **live** (202)                                                                                               |
+| POST   | /api/auth/email-change/confirm                                                       | Bearer  | AuthController            | **live**                                                                                                     |
+| GET    | /api/users/me                                                                        | Bearer  | UserController            | **live**                                                                                                     |
+| DELETE | /api/users/me                                                                        | Bearer  | UserController            | **live** (204)                                                                                               |
+| PATCH  | /api/users/me                                                                        | Bearer  | UserController            | **live** (first and/or last name)                                                                            |
+| GET    | /api/users/me/preferences                                                            | Bearer  | PreferencesController     | **live** (404 until set up)                                                                                  |
+| POST   | /api/users/me/preferences                                                            | Bearer  | PreferencesController     | **live** (201; 409 if already set up)                                                                        |
+| PUT    | /api/users/me/preferences                                                            | Bearer  | PreferencesController     | **live** (replaces all fields; `null` = no limit)                                                            |
+| GET    | /api/recipes?q=&labels=&minProtein=&maxCalories=&maxTime=&maxCost=&sort=&page=&size= | Bearer  | RecipeController          | **live** (page of summaries with `flags`, `favorite` and cost; `sort=cost` cheapest first)                   |
+| GET    | /api/recipes/{id}?servings=                                                          | Bearer  | RecipeController          | **live** (scaled detail with `estimatedCost`; 404 if missing or restricted)                                  |
+| PUT    | /api/recipes/{id}/favorite                                                           | Bearer  | FavoriteController        | **live** (204, idempotent)                                                                                   |
+| DELETE | /api/recipes/{id}/favorite                                                           | Bearer  | FavoriteController        | **live** (204, idempotent)                                                                                   |
+| GET    | /api/users/me/favorites?page=&size=                                                  | Bearer  | FavoriteController        | **live** (newest first)                                                                                      |
+| POST   | /api/admin/ingredients/import                                                        | API key | AdminIngredientController | **live** (`{ingredients: [...]}`, up to 50; `{created, updated}`)                                            |
+| POST   | /api/admin/recipes/ingest                                                            | API key | AdminRecipeController     | **live** (`{recipes: [...]}`, up to 25; `{created, skippedDuplicate, failed, needsReview}`)                  |
+| GET    | /api/admin/recipe-ingredients/needs-review?page=&size=                               | API key | AdminReviewController     | **live** (`{items, page, size, total}`)                                                                      |
+| PATCH  | /api/admin/recipe-ingredients/{id}                                                   | API key | AdminReviewController     | **live** (`{ingredientId, saveAlias}`; `{id, ingredientName, alsoMatched}`)                                  |
+| POST   | /api/admin/recipes/reprocess?rematchAll=                                             | API key | AdminReviewController     | **live** (`{recipes, linesReparsed, newlyMatched, stillNeedsReview, failed}`)                                |
+| POST   | /api/admin/prices/import                                                             | API key | AdminPriceController      | **live** (`{prices: [...]}`, up to 200; `{imported, skipped, failed, recipesRecosted}`)                      |
+| POST   | /api/admin/prices/products                                                           | API key | AdminPriceController      | **live** (`{products: [...]}`, up to 500; `{created, updated, unchanged, failed}`)                           |
+| POST   | /api/admin/prices/refresh                                                            | API key | AdminPriceController      | **live** (re-prices every active Kroger product; `{products, priced, noUnitPrice, failed, recipesRecosted}`) |
+| POST   | /api/admin/prices/recalculate                                                        | API key | AdminPriceController      | **live** (`{recipesRecosted}`)                                                                               |
+| POST   | /api/meal-plans/generate                                                             | Bearer  | MealPlanController        | planned                                                                                                      |
+| GET    | /api/meal-plans                                                                      | Bearer  | MealPlanController        | planned                                                                                                      |
+| GET    | /api/meal-plans/{id}                                                                 | Bearer  | MealPlanController        | planned                                                                                                      |
+| GET    | /api/meal-plans/{id}/calendar                                                        | Bearer  | MealPlanController        | planned                                                                                                      |
+| DELETE | /api/meal-plans/{id}                                                                 | Bearer  | MealPlanController        | planned                                                                                                      |
+| GET    | /api/meal-plans/{id}/grocery-list                                                    | Bearer  | GroceryListController     | planned                                                                                                      |
+| PATCH  | /api/grocery-list-items/{id}                                                         | Bearer  | GroceryListController     | planned                                                                                                      |
 
 Controllers stay thin (bind, validate, delegate to a service). Success responses return the DTO with an explicit status; errors return ProblemDetail. Recipe routes are Bearer-only, covered by `SecurityConfig`'s authenticated default. Admin routes require the `X-Admin-Key` header: `ApiKeyAuthenticationFilter` compares it in constant time and grants `ROLE_ADMIN`, and `/api/admin/**` requires that role, so a user's access token gets 403.
 
 ## Open Questions
 
-- [x] Grocery pricing comes from Open Prices with manual fallback, stored as `IngredientPrice` history.
+- [x] Grocery pricing comes from Kroger (one store, weekly), BLS and seed prices, stored as `IngredientPrice` history and resolved by a fallback chain. Open Prices was dropped: too thin for meat, produce and store brands.
 - [x] Dietary labels are assigned by a rule-based classifier at ingestion.
 - [x] Schema is managed by Flyway migrations, with Hibernate in `validate` mode.
 - [x] `Recipe` source and image columns added in V6; ingestion dedupes on `sourceUrl`.
@@ -579,7 +646,8 @@ Controllers stay thin (bind, validate, delegate to a service). Success responses
 - [ ] Use gram weights recipes give in parentheses ("1 cup (240g)") instead of portion lookups.
 - [ ] Integration tests run against Supabase; move them to Testcontainers (throwaway Postgres in Docker).
 - [ ] The review queue lists only unmatched lines; also list low-confidence fuzzy matches (score under about 0.8). "Cherry peppers" matched black pepper at 0.5+ and was never reviewed.
-- [ ] Recipe prices scraped from blogs are stripped by the parser; live prices will come from the pricing service.
+- [x] Recipe prices scraped from blogs are stripped by the parser; live prices come from the pricing service.
+- [ ] Pricing follow-ups (fresh herbs in small packages, products with only a price per item, premium-brand picks, Kroger production approval) are listed in the Forkast Pricing Plan doc for the catalog revisit.
 - [ ] Choose a production email provider, and send emails after the transaction commits.
 - [ ] Rate-limit login and code endpoints before public launch.
 - [ ] Scheduled cleanup of expired refresh tokens and auth codes.

@@ -1,28 +1,34 @@
 # Forkast Data Pipeline
 
-Python scripts that build Forkast's ingredient catalog from USDA FoodData Central and scrape recipe pages with [`recipe-scrapers`](https://github.com/hhursev/recipe-scrapers), then send everything to the backend's admin API.
+Python scripts that build Forkast's ingredient catalog from USDA FoodData Central, scrape recipe pages with [`recipe-scrapers`](https://github.com/hhursev/recipe-scrapers), and set up prices (Kroger product mapping, BLS average prices, seed prices), then send everything to the backend's admin API.
 
-> **Status:** working. The catalog has 153 ingredients, and the first scrape imported 17 recipes from 2 sites.
+> **Status:** working. The catalog has 153 ingredients, the first scrape imported 17 recipes from 2 sites, and 152 ingredients are mapped to Kroger products.
 
 ## Responsibilities
 
-The scripts only **fetch and forward**. They never parse ingredient lines, match ingredients, compute nutrition, or assign dietary labels; the backend owns all of that (see [../backend/README.md](../backend/README.md#recipe-ingestion)).
+The scripts only **fetch and forward**. They never parse ingredient lines, match ingredients, compute nutrition or unit prices, or assign dietary labels; the backend owns all of that (see [../backend/README.md](../backend/README.md#recipe-ingestion)).
 
 Keeping the scripts thin means parsing rules live in one place, and the backend can re-process saved recipes after a fix without re-scraping.
 
 ## Files
 
-| File                         | Purpose                                                                                                               |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------ |
-| `common.py`                  | Loads `.env`, the backend URL, cache and log folders, the User-Agent, and `post_json` (adds the `X-Admin-Key` header) |
-| `ingredients_seed.csv`       | The curated ingredient catalog: `name, query, fdc_id, fdc_description, aliases, tags` (aliases and tags are `         | `-separated) |
-| `find_fdc.py`                | Fills in blank `fdc_id`s by searching FDC; writes alternatives to `cache/fdc_candidates.csv`                          |
-| `fdc_lookup.py`              | Prints the FDC description for one or more ids, to check a hand-picked id                                             |
-| `seed_ingredients.py`        | Fetches each food from FDC, extracts macros and portions, posts to the import route                                   |
-| `urls.txt`                   | Recipe URLs, one per line; `#` lines are comments                                                                     |
-| `scrape_recipes.py`          | Fetches, caches, scrapes and posts recipes; writes a JSON log to `logs/`                                              |
-| `samples/ingest_sample.json` | A hand-written batch for testing the ingest route                                                                     |
-| `cache/`, `logs/`            | Cached FDC responses and HTML, run logs; both gitignored                                                              |
+| File                         | Purpose                                                                                                                     |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `common.py`                  | Loads `.env`, the backend URL, cache and log folders, the User-Agent, and `post_json` (adds the `X-Admin-Key` header)       |
+| `ingredients_seed.csv`       | The curated ingredient catalog: `name, query, fdc_id, fdc_description, aliases, tags` (aliases and tags are `\|`-separated) |
+| `find_fdc.py`                | Fills in blank `fdc_id`s by searching FDC; writes alternatives to `cache/fdc_candidates.csv`                                |
+| `fdc_lookup.py`              | Prints the FDC description for one or more ids, to check a hand-picked id                                                   |
+| `seed_ingredients.py`        | Fetches each food from FDC, extracts macros and portions, posts to the import route                                         |
+| `urls.txt`                   | Recipe URLs, one per line; `#` lines are comments                                                                           |
+| `scrape_recipes.py`          | Fetches, caches, scrapes and posts recipes; writes a JSON log to `logs/`                                                    |
+| `samples/ingest_sample.json` | A hand-written batch for testing the ingest route                                                                           |
+| `import_prices.py`           | `bls` imports the latest BLS average prices for `bls_series.csv`; `seed` imports `prices_seed.csv`                          |
+| `bls_series.csv`             | Catalog ingredient to BLS series id and size (23 series that BLS still publishes)                                           |
+| `prices_seed.csv`            | Hand-entered prices for ingredients no other source covers; `#` lines are comments                                          |
+| `kroger.py`                  | Kroger app token and product search                                                                                         |
+| `find_product.py`            | Maps catalog ingredients to Kroger products in `kroger_products.csv`; `--post` sends the mapping                            |
+| `kroger_products.csv`        | `ingredient, product_id, label, size, sold_by, price, active`: the reviewed mapping the weekly refresh re-prices            |
+| `cache/`, `logs/`            | Cached FDC responses and HTML, run logs; both gitignored                                                                    |
 
 ## Setup
 
@@ -35,12 +41,16 @@ pip install -r requirements.txt
 cp .env.example .env               # then fill in the values
 ```
 
-| `.env` setting          | Value                                                                                     |
-| ----------------------- | ----------------------------------------------------------------------------------------- |
-| `FORKAST_API_URL`       | `http://localhost:8080`                                                                   |
-| `FORKAST_ADMIN_KEY`     | `openssl rand -hex 32`; the same value goes in the backend's `forkast.admin.api-key`      |
-| `DATA_GOV_API_KEY`      | A free key from [api.data.gov](https://api.data.gov/signup) (1,000 FDC requests per hour) |
-| `SCRAPER_CONTACT_EMAIL` | An address site owners can reach you at; sent in every request's User-Agent               |
+| `.env` setting                             | Value                                                                                                                          |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `FORKAST_API_URL`                          | `http://localhost:8080`                                                                                                        |
+| `FORKAST_ADMIN_KEY`                        | `openssl rand -hex 32`; the same value goes in the backend's `forkast.admin.api-key`                                           |
+| `DATA_GOV_API_KEY`                         | A free key from [api.data.gov](https://api.data.gov/signup) (1,000 FDC requests per hour)                                      |
+| `SCRAPER_CONTACT_EMAIL`                    | An address site owners can reach you at; sent in every request's User-Agent                                                    |
+| `BLS_API_KEY`                              | Optional free key from [BLS](https://data.bls.gov/registrationEngine/); raises the request limits                              |
+| `KROGER_CLIENT_ID`, `KROGER_CLIENT_SECRET` | From your app at [developer.kroger.com](https://developer.kroger.com); same values as the backend's `forkast.pricing.kroger.*` |
+| `KROGER_BASE_URL`                          | `https://api-ce.kroger.com` for a certification app; `https://api.kroger.com` in production                                    |
+| `KROGER_LOCATION_ID`                       | `01400513` (Kroger On the Rhine, Cincinnati); must match the backend's store                                                   |
 
 `.env` is gitignored. `.env.example` is committed with blank values; never put real keys in it.
 
@@ -90,6 +100,63 @@ python scrape_recipes.py             # post (reads the cache, so the sites aren'
 ### Copyright
 
 Ingredient lists are facts and generally not protected; instructions, descriptions and photos usually are. Storing them for local development and a portfolio demo is fine. Before a public release, choose one: show ingredients, nutrition and cost with a link to the source for instructions; use a licensed recipe API; use recipes you have rights to; or ask sources for permission. Keep `source_url` and show attribution either way. This is not legal advice.
+
+## Prices
+
+The backend owns all pricing math (see [../backend/README.md](../backend/README.md#pricing)). These scripts choose products and send raw prices.
+
+### BLS average prices
+
+```bash
+python import_prices.py bls --dry-run   # fetch and print, post nothing
+python import_prices.py bls             # post; already-stored months are skipped
+```
+
+Each price is dated at the end of its month, so the backend's 60-day window keeps the newest month current until the next is published (about two weeks after a month ends). BLS stopped publishing many series (onions, carrots, celery, peppers, broccoli, mushrooms, apples...); those were removed from `bls_series.csv` and Kroger covers them. The raw response is cached in `cache/bls/`.
+
+### Kroger product mapping
+
+```bash
+python find_product.py                     # search for every ingredient without a row
+python find_product.py --only "lime" --query "fresh limes"   # redo one with other words
+python find_product.py --post              # send kroger_products.csv to the backend
+curl -X POST -H "X-Admin-Key: $KEY" http://localhost:8080/api/admin/prices/refresh
+```
+
+`find_product.py` searches the configured store and keeps the best guess: has a price, most words of the ingredient name, Kroger's store brand, not organic unless asked, not a drink or snack. The top 5 per ingredient go to `cache/kroger_candidates.csv`. Searches are cached in `cache/kroger/search/` (`--only` always searches again).
+
+**Review before posting.** Search ranking is a first guess:
+
+- "lemon" and "lime" return lemon-lime soda first; "cashews" returned cashew milk.
+- Prefer products with a weight in the size ("16 oz", "3 lb") or sold by weight. "1 each" or "1 ct" items get a price per 100 g only when Kroger gives the package weight; otherwise only a price per item, and cup or teaspoon lines stay unpriced.
+- Fresh herbs at this store come in 0.5 oz packages, which makes herb-heavy recipes expensive. Look for larger packages or use dried.
+- Watch for premium brands and case listings ("24 ct / 14.5 oz" priced per can).
+
+Fix a pick by pasting a `product_id` from the candidates, add a second row as a backup (the cheaper one per 100 g wins), or set `active` to `false`. When `--only` finds a new match it keeps the old row with `active=false`, so `--post` switches it off in the backend and its old prices stop counting; delete those rows after posting. A search that finds nothing leaves the existing row alone.
+
+### Seed prices
+
+For ingredients neither Kroger nor BLS covers. Add rows to `prices_seed.csv` (`ingredient,price,size,note`, size like a store label: `1 lb`, `16 oz`, `1 dozen`), then `python import_prices.py seed`. Editing a price and re-running adds a new row; unchanged rows are skipped.
+
+### Checking prices
+
+```sql
+-- Latest price per active Kroger product, highest per 100 g first (spices at the top are normal)
+with latest as (
+  select distinct on (p.ingredient_id, p.external_id)
+         i.name, p.price_per_100g, p.price_per_item, p.size_text, p.price
+  from ingredient_prices p
+  join ingredients i on i.id = p.ingredient_id
+  join ingredient_products m on m.ingredient_id = p.ingredient_id
+       and m.external_id = p.external_id and m.source = 'KROGER' and m.active
+  where p.source = 'KROGER'
+  order by p.ingredient_id, p.external_id, p.recorded_at desc
+)
+select * from latest order by price_per_100g desc nulls last;
+
+-- Recipe costs
+select name, cost_per_serving, cost_complete from recipes order by cost_per_serving nulls last;
+```
 
 ## Backend contract
 
@@ -145,6 +212,44 @@ Response: `{ "created": 50, "updated": 0 }`. Matching on `fdcId` makes re-runs s
 ```
 
 Response: `{ "created": 17, "skippedDuplicate": 0, "failed": [{ "sourceUrl": "...", "reason": "..." }], "needsReview": 41 }`. A bad recipe is listed in `failed` without affecting the rest. `yields` is sent raw and parsed by the backend; missing fields are sent as `null`. Nutrition is never sent: the backend computes it.
+
+### `POST /api/admin/prices/import` (up to 200)
+
+```json
+{
+  "prices": [
+    {
+      "ingredient": "chicken breast",
+      "source": "BLS",
+      "price": 4.17,
+      "size": "1 lb",
+      "externalId": "APU0000FF1101",
+      "recordedAt": "2026-09-01T00:00:00Z",
+      "storeName": "BLS U.S. city average"
+    }
+  ]
+}
+```
+
+`ingredient` is a catalog name or alias. `source` is `BLS`, `SEED`, `MANUAL` or `OPEN_PRICES` (Kroger prices only come from the refresh). `recordedAt` defaults to now. Response: `{ "imported": 23, "skipped": 0, "failed": [{ "ingredient": "...", "reason": "..." }], "recipesRecosted": 19 }`.
+
+### `POST /api/admin/prices/products` (up to 500)
+
+```json
+{
+  "products": [
+    {
+      "ingredient": "onion",
+      "source": "KROGER",
+      "externalId": "0001111091682",
+      "label": "Kroger Yellow Onion 3 lb Bag",
+      "active": true
+    }
+  ]
+}
+```
+
+Matches on ingredient + source + product id, so re-posting updates labels and `active` instead of duplicating. Response: `{ "created": 3, "updated": 3, "unchanged": 149, "failed": [] }`.
 
 ### Review and re-processing
 

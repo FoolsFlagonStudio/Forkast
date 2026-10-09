@@ -93,6 +93,12 @@ public class Recipe {
     @Column(name = "nutrition_complete", nullable = false)
     private boolean nutritionComplete = false;
 
+    @Column(name = "cost_per_serving", precision = 8, scale = 2)
+    private BigDecimal costPerServing;
+
+    @Column(name = "cost_complete", nullable = false)
+    private boolean costComplete = false;
+
     // ---------- timestamps ----------
 
     @CreationTimestamp
@@ -326,6 +332,28 @@ public class Recipe {
         this.carbsGPerServing = carbs;
         this.fatGPerServing = fat;
         this.nutritionComplete = complete;
+    }
+
+    /** Estimated cost of one serving in USD; null when no line could be priced. */
+    public BigDecimal getCostPerServing() {
+        return costPerServing;
+    }
+
+    /** False when any required line has no price or can't be converted to grams. */
+    public boolean isCostComplete() {
+        return costComplete;
+    }
+
+    /**
+     * Sets cost the way setNutrition sets nutrition: both at once, after a
+     * calculation.
+     */
+    public void setCost(BigDecimal costPerServing, boolean complete) {
+        if (costPerServing != null && costPerServing.signum() < 0) {
+            throw new IllegalArgumentException("costPerServing can't be negative");
+        }
+        this.costPerServing = costPerServing;
+        this.costComplete = complete;
     }
 
     // ---------- private helpers ----------

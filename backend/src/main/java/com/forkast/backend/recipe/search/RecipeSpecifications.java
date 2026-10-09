@@ -45,6 +45,9 @@ public final class RecipeSpecifications {
         if (criteria.maxTotalMinutes() != null) {
             conditions.add(totalTimeAtMost(criteria.maxTotalMinutes()));
         }
+        if (criteria.maxCostPerServing() != null) {
+            conditions.add(costAtMost(criteria.maxCostPerServing()));
+        }
         return Specification.allOf(conditions);
     }
 
@@ -72,6 +75,14 @@ public final class RecipeSpecifications {
      */
     public static Specification<Recipe> proteinAtLeast(BigDecimal grams) {
         return (root, query, cb) -> cb.greaterThanOrEqualTo(root.<BigDecimal>get("proteinGPerServing"), grams);
+    }
+
+    /**
+     * Recipes with no cost don't pass, like calories: an unknown cost can't be
+     * shown to fit.
+     */
+    public static Specification<Recipe> costAtMost(BigDecimal perServing) {
+        return (root, query, cb) -> cb.lessThanOrEqualTo(root.<BigDecimal>get("costPerServing"), perServing);
     }
 
     public static Specification<Recipe> caloriesAtMost(BigDecimal calories) {

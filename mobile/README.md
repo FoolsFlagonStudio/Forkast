@@ -10,18 +10,23 @@ The app talks only to the Forkast backend API (see [../backend/README.md](../bac
 
 ## Planned Features
 
-| Feature                                                                                    | Backend routes                                                      |
-| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
-| Sign up, log in, email verification, password reset                                        | `/api/auth/*`                                                       |
-| Onboarding: weekly budget, household size, dietary restrictions, calorie and macro targets | `/api/users/me/preferences`                                         |
-| Browse and search recipes, scale servings                                                  | `/api/recipes`, `/api/recipes/{id}/scaled`                          |
-| Favorite recipes                                                                           | `/api/recipes/{id}/favorite`                                        |
-| Generate and view weekly meal plans (calendar view)                                        | `/api/meal-plans`, `/api/meal-plans/{id}/calendar`                  |
-| Grocery list with purchased checkboxes                                                     | `/api/meal-plans/{id}/grocery-list`, `/api/grocery-list-items/{id}` |
+| Feature                                                                                                            | Backend routes                                                       |
+| ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
+| Sign up, log in, email verification, password reset                                                                | `/api/auth/*`                                                        |
+| Onboarding: weekly budget, household size, dietary restrictions, calorie and macro targets                         | `/api/users/me/preferences`                                          |
+| Browse and search recipes (with fit flags), scale servings                                                         | `/api/recipes`, `/api/recipes/{id}?servings=`                        |
+| Recipe cost: per-serving estimate on cards, `sort=cost`, `maxCost` filter, total for the chosen servings in detail | `/api/recipes`, `/api/recipes/{id}?servings=`                        |
+| Favorite recipes                                                                                                   | `PUT`/`DELETE /api/recipes/{id}/favorite`, `/api/users/me/favorites` |
+| Generate and view weekly meal plans (calendar view)                                                                | `/api/meal-plans`, `/api/meal-plans/{id}/calendar`                   |
+| Grocery list with purchased checkboxes                                                                             | `/api/meal-plans/{id}/grocery-list`, `/api/grocery-list-items/{id}`  |
 
 ## Auth Notes
 
 The backend issues short-lived JWT access tokens plus refresh tokens. Tokens should be kept in secure device storage, not plain async storage.
+
+## Cost Notes
+
+`costPerServing` is an estimate in USD from one representative store, refreshed weekly. When `costComplete` is false, some lines couldn't be priced and the real cost is higher; show it as "from $X" or with an "estimate" label rather than as an exact price. `estimatedCost` in recipe detail is what the chosen servings use, not what a shopping trip costs (the grocery list buys whole packages).
 
 ## Tech Stack
 

@@ -12,9 +12,10 @@ import com.forkast.backend.diet.DietaryLabel;
  * request.
  */
 public record RecipeSearchCriteria(
-        String text,
-        Set<DietaryLabel> requiredLabels,
-        BigDecimal minProtein,
-        BigDecimal maxCalories,
-        Integer maxTotalMinutes) {
+                String text,
+                Set<DietaryLabel> requiredLabels,
+                BigDecimal minProtein,
+                BigDecimal maxCalories,
+                Integer maxTotalMinutes,
+                BigDecimal maxCostPerServing) {
 }

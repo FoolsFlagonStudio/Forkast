@@ -1,6 +1,7 @@
 package com.forkast.backend.recipe;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -75,7 +76,8 @@ public class RecipeQueryService {
         requiredLabels.addAll(resolveLabels(request.labels()));
 
         Specification<Recipe> spec = RecipeSpecifications.matching(new RecipeSearchCriteria(
-                request.q(), requiredLabels, request.minProtein(), request.maxCalories(), request.maxTime()));
+                request.q(), requiredLabels, request.minProtein(), request.maxCalories(), request.maxTime(),
+                request.maxCost()));
 
         List<UUID> pageIds;
         long total;
@@ -139,7 +141,10 @@ public class RecipeQueryService {
                 recipe.getCategory(), recipe.getCuisine(), recipe.getSourceUrl(), recipe.getSourceHost(),
                 recipe.getCaloriesPerServing(), recipe.getProteinGPerServing(),
                 recipe.getCarbsGPerServing(), recipe.getFatGPerServing(),
-                recipe.isNutritionComplete(), recipe.getMealPrepScore(),
+                recipe.isNutritionComplete(),
+                recipe.getCostPerServing(), estimatedCost(recipe.getCostPerServing(), targetServings),
+                recipe.isCostComplete(),
+                recipe.getMealPrepScore(),
                 recipe.getDietaryLabels().stream().map(DietaryLabel::getName).sorted().toList(),
                 evaluate(recipe, FitTargets.from(preferences)).flags(),
                 favoriteRepository.existsByUserIdAndRecipeId(userId, recipeId),
@@ -186,6 +191,11 @@ public class RecipeQueryService {
     }
 
     // ---------- helpers ----------
+
+    private static BigDecimal estimatedCost(BigDecimal perServing, int servings) {
+        return perServing == null ? null
+                : perServing.multiply(BigDecimal.valueOf(servings)).setScale(2, RoundingMode.HALF_UP);
+    }
 
     /**
      * Builds the cards for one page in a fixed number of queries: one for the
@@ -260,6 +270,7 @@ public class RecipeQueryService {
             case CALORIES -> Sort.Order.asc("caloriesPerServing").nullsLast();
             case MEAL_PREP -> Sort.Order.desc("mealPrepScore");
             case NEWEST -> Sort.Order.desc("createdAt");
+            case COST -> Sort.Order.asc("costPerServing").nullsLast();
             default -> throw new IllegalStateException("sorted in Java: " + sort);
         };
         return Sort.by(primary, Sort.Order.asc("name"));

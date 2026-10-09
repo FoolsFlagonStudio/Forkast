@@ -1,0 +1,996 @@
+{
+    "data": [
+        {
+            "productId": "0024061550000",
+            "upc": "0024061550000",
+            "productPageURI": "/p/simple-truth-natural-chicken-breasts/0024061550000?cid=dis.api.tpi_products-api_20240521_b:all_c:np_t:forkast-development-",
+            "aliasProductIds": [
+                "00404048063988"
+            ],
+            "aisleLocations": [
+                {
+                    "bayNumber": "1",
+                    "description": "MEAT",
+                    "number": "101",
+                    "numberOfFacings": "1",
+                    "side": "R",
+                    "shelfNumber": "1",
+                    "shelfPositionInBay": "5"
+                }
+            ],
+            "brand": "Simple Truth",
+            "categories": [
+                "Meat & Seafood",
+                "Natural & Organic"
+            ],
+            "countryOrigin": "UNITED STATES",
+            "description": "Simple Truth Natural Chicken Breasts",
+            "snapEligible": true,
+            "manufacturerDeclarations": [
+                "Dairy Free",
+                "Egg Free",
+                "Fish Free",
+                "Free from Peanuts",
+                "Tree Nuts Free",
+                "Soy Free",
+                "Shellfish Free"
+            ],
+            "allergens": [
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Wheat and Their Derivatives"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Soybean and its Derivatives"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Crustaceans and their derivates"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Sesame Seeds and their derivates"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Peanuts and their derivates"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Fish and their derivates"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Milk and its derivates"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Tree Nuts and Their Derivatives"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Eggs and their derivates"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Molluscs and their derivates"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Shellfish and its Derivatives"
+                }
+            ],
+            "allergensDescription": "Free from Sesame Seeds and their derivates,Crustaceans and their derivates,Wheat and Their Derivatives,Eggs and their derivates,Fish and their derivates,Molluscs and their derivates,Soybean and its Derivatives,Shellfish and its Derivatives,Milk and its derivates,Tree Nuts and Their Derivatives,Peanuts and their derivates.",
+            "organicClaimName": "NO",
+            "receiptDescription": "STN CHK BRST",
+            "restrictions": {},
+            "images": [
+                {
+                    "perspective": "back"
+                },
+                {
+                    "perspective": "right"
+                },
+                {
+                    "perspective": "front",
+                    "featured": true,
+                    "sizes": [
+                        {
+                            "size": "xlarge",
+                            "url": "https://www.kroger.com/product/images/xlarge/front/0024061550000"
+                        },
+                        {
+                            "size": "large",
+                            "url": "https://www.kroger.com/product/images/large/front/0024061550000"
+                        },
+                        {
+                            "size": "medium",
+                            "url": "https://www.kroger.com/product/images/medium/front/0024061550000"
+                        },
+                        {
+                            "size": "small",
+                            "url": "https://www.kroger.com/product/images/small/front/0024061550000"
+                        },
+                        {
+                            "size": "thumbnail",
+                            "url": "https://www.kroger.com/product/images/thumbnail/front/0024061550000"
+                        }
+                    ]
+                },
+                {
+                    "perspective": "top"
+                },
+                {
+                    "perspective": "left"
+                }
+            ],
+            "items": [
+                {
+                    "itemId": "0024061550000",
+                    "inventory": {
+                        "stockLevel": "HIGH"
+                    },
+                    "favorite": false,
+                    "fulfillment": {
+                        "curbside": false,
+                        "delivery": false,
+                        "inStore": false,
+                        "shipToHome": false
+                    },
+                    "price": {
+                        "regular": 5.99,
+                        "regularPerUnitEstimate": 5.99,
+                        "expirationDate": {
+                            "value": "9999-12-31T00:00:00Z",
+                            "timezone": "Z"
+                        },
+                        "effectiveDate": {
+                            "value": "2026-09-30T16:35:47.031Z",
+                            "timezone": "Z"
+                        }
+                    },
+                    "size": "1 lb",
+                    "soldBy": "WEIGHT"
+                }
+            ],
+            "itemInformation": {
+                "depth": "1.25",
+                "height": "6.34",
+                "width": "8.75",
+                "grossWeight": "1.8 [lb_av]",
+                "netWeight": "1.4 [lb_av]",
+                "averageWeightPerUnit": "1.9 [lb_av]"
+            },
+            "temperature": {
+                "indicator": "Refrigerated",
+                "heatSensitive": false
+            },
+            "ratingsAndReviews": {
+                "averageOverallRating": 0,
+                "totalReviewCount": 0
+            },
+            "nutritionInformation": [
+                {
+                    "ingredientStatement": "Chicken",
+                    "dailyValueIntakeReference": "The % Daily Value (DV) tells you how much a nutrient in a serving of food contributes to a daily diet. 2,000 calories a day is used for general nutrition advice.",
+                    "servingSize": {
+                        "quantity": 4,
+                        "unitOfMeasure": {
+                            "abbreviation": "oz",
+                            "code": "ONZ",
+                            "name": "Ounce"
+                        }
+                    },
+                    "nutrients": [
+                        {
+                            "code": "FE",
+                            "description": "iron, total",
+                            "displayName": "Iron",
+                            "percentDailyIntake": 4,
+                            "quantity": 0.7,
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "MGM",
+                                "name": "Milligram"
+                            }
+                        },
+                        {
+                            "code": "SUGAD",
+                            "description": "sugar, added",
+                            "displayName": "Added Sugar",
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "GRM",
+                                "name": "Gram"
+                            }
+                        },
+                        {
+                            "code": "K",
+                            "description": "potassium",
+                            "displayName": "Potassium",
+                            "percentDailyIntake": 8,
+                            "quantity": 360,
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "MGM",
+                                "name": "Milligram"
+                            }
+                        },
+                        {
+                            "code": "ENER-",
+                            "description": "energy; method of determination unknown or variable",
+                            "displayName": "Calories",
+                            "quantity": 130,
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "E14",
+                                "name": "Kilocalorie (international table)"
+                            }
+                        },
+                        {
+                            "code": "CA",
+                            "description": "calcium",
+                            "displayName": "Calcium",
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "MGM",
+                                "name": "Milligram"
+                            }
+                        },
+                        {
+                            "code": "CHOL-",
+                            "description": "cholesterol; method of determination unknown or variable",
+                            "displayName": "Cholesterol",
+                            "percentDailyIntake": 22,
+                            "quantity": 65,
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "MGM",
+                                "name": "Milligram"
+                            }
+                        },
+                        {
+                            "code": "PRO-",
+                            "description": "protein, total; method of determination unknown or variable",
+                            "displayName": "Protein",
+                            "quantity": 25,
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "GRM",
+                                "name": "Gram"
+                            }
+                        },
+                        {
+                            "code": "FATRN",
+                            "description": "fatty acids, total trans",
+                            "displayName": "Trans Fat",
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "GRM",
+                                "name": "Gram"
+                            }
+                        },
+                        {
+                            "code": "NA",
+                            "description": "sodium",
+                            "displayName": "Sodium",
+                            "percentDailyIntake": 4,
+                            "quantity": 85,
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "MGM",
+                                "name": "Milligram"
+                            }
+                        },
+                        {
+                            "code": "SUGAR",
+                            "description": "sugars, total",
+                            "displayName": "Sugar",
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "GRM",
+                                "name": "Gram"
+                            }
+                        },
+                        {
+                            "code": "CHO-",
+                            "description": "carbohydrate, total; method of determination unknown or variable",
+                            "displayName": "Total Carbohydrate",
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "GRM",
+                                "name": "Gram"
+                            }
+                        },
+                        {
+                            "code": "FAT",
+                            "description": "fat, total",
+                            "displayName": "Total Fat",
+                            "percentDailyIntake": 3,
+                            "quantity": 2,
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "GRM",
+                                "name": "Gram"
+                            }
+                        },
+                        {
+                            "code": "FIBTSW",
+                            "description": "fibre, total dietary; Wenlock modification",
+                            "displayName": "Dietary Fiber",
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "GRM",
+                                "name": "Gram"
+                            }
+                        },
+                        {
+                            "code": "FASAT",
+                            "description": "fatty acids, total saturated",
+                            "displayName": "Saturated Fat",
+                            "percentDailyIntake": 3,
+                            "quantity": 0.5,
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "GRM",
+                                "name": "Gram"
+                            }
+                        },
+                        {
+                            "code": "VITD",
+                            "description": "vitamin D; calculated by summation of ergocalciferol and cholecalciferol",
+                            "displayName": "Vitamin D",
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "MC",
+                                "name": "Microgram"
+                            }
+                        }
+                    ],
+                    "preparationState": {
+                        "code": "UNSPECIFIED",
+                        "name": "Unspecified"
+                    },
+                    "servingsPerPackage": {},
+                    "nutritionalRating": "64"
+                }
+            ]
+        },
+        {
+            "productId": "0024058150000",
+            "upc": "0024058150000",
+            "productPageURI": "/p/simple-truth-natural-boneless-skinless-fresh-chicken-breast-tenders/0024058150000?cid=dis.api.tpi_products-api_20240521_b:all_c:np_t:forkast-development-",
+            "aliasProductIds": [
+                "00238960500005"
+            ],
+            "aisleLocations": [
+                {
+                    "bayNumber": "1",
+                    "description": "MEAT",
+                    "number": "101",
+                    "numberOfFacings": "1",
+                    "side": "R",
+                    "shelfNumber": "2",
+                    "shelfPositionInBay": "3"
+                }
+            ],
+            "brand": "Simple Truth",
+            "categories": [
+                "Meat & Seafood",
+                "Natural & Organic"
+            ],
+            "countryOrigin": "UNITED STATES",
+            "description": "Simple Truth\u00c2\u00ae Natural Boneless & Skinless Fresh Chicken Breast Tenders",
+            "snapEligible": true,
+            "manufacturerDeclarations": [
+                "Dairy Free",
+                "Egg Free",
+                "Fish Free",
+                "Free from Peanuts",
+                "Tree Nuts Free",
+                "Soy Free",
+                "Shellfish Free"
+            ],
+            "allergens": [
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Sesame Seeds and their derivates"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Wheat and Their Derivatives"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Milk and its derivates"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Tree Nuts and Their Derivatives"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Crustaceans and their derivates"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Peanuts and their derivates"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Fish and their derivates"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Eggs and their derivates"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Soybean and its Derivatives"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Shellfish and its Derivatives"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Molluscs and their derivates"
+                }
+            ],
+            "allergensDescription": "Free from Crustaceans and their derivates,Wheat and Their Derivatives,Sesame Seeds and their derivates,Eggs and their derivates,Fish and their derivates,Molluscs and their derivates,Soybean and its Derivatives,Shellfish and its Derivatives,Milk and its derivates,Tree Nuts and Their Derivatives,Peanuts and their derivates.",
+            "organicClaimName": "NO",
+            "receiptDescription": "STN BL SL BRST",
+            "restrictions": {},
+            "images": [
+                {
+                    "perspective": "back"
+                },
+                {
+                    "perspective": "right"
+                },
+                {
+                    "perspective": "front",
+                    "featured": true,
+                    "sizes": [
+                        {
+                            "size": "xlarge",
+                            "url": "https://www.kroger.com/product/images/xlarge/front/0024058150000"
+                        },
+                        {
+                            "size": "large",
+                            "url": "https://www.kroger.com/product/images/large/front/0024058150000"
+                        },
+                        {
+                            "size": "medium",
+                            "url": "https://www.kroger.com/product/images/medium/front/0024058150000"
+                        },
+                        {
+                            "size": "small",
+                            "url": "https://www.kroger.com/product/images/small/front/0024058150000"
+                        },
+                        {
+                            "size": "thumbnail",
+                            "url": "https://www.kroger.com/product/images/thumbnail/front/0024058150000"
+                        }
+                    ]
+                },
+                {
+                    "perspective": "left"
+                },
+                {
+                    "perspective": "top"
+                }
+            ],
+            "items": [
+                {
+                    "itemId": "0024058150000",
+                    "inventory": {
+                        "stockLevel": "HIGH"
+                    },
+                    "favorite": false,
+                    "fulfillment": {
+                        "curbside": false,
+                        "delivery": false,
+                        "inStore": false,
+                        "shipToHome": false
+                    },
+                    "price": {
+                        "regular": 6.99,
+                        "regularPerUnitEstimate": 6.99,
+                        "expirationDate": {
+                            "value": "9999-12-31T00:00:00Z",
+                            "timezone": "Z"
+                        },
+                        "effectiveDate": {
+                            "value": "2026-09-29T06:48:55.583Z",
+                            "timezone": "Z"
+                        }
+                    },
+                    "size": "1 lb",
+                    "soldBy": "WEIGHT"
+                }
+            ],
+            "itemInformation": {
+                "depth": "0.69",
+                "height": "6.34",
+                "width": "8.75",
+                "grossWeight": "1.5 [lb_av]",
+                "netWeight": "1.0 [lb_av]",
+                "averageWeightPerUnit": "0.94 [lb_av]"
+            },
+            "temperature": {
+                "indicator": "Refrigerated",
+                "heatSensitive": false
+            },
+            "ratingsAndReviews": {
+                "averageOverallRating": 0,
+                "totalReviewCount": 0
+            },
+            "nutritionInformation": [
+                {
+                    "ingredientStatement": "Chicken",
+                    "dailyValueIntakeReference": "The % Daily Value (DV) tells you how much a nutrient in a serving of food contributes to a daily diet. 2,000 calories a day is used for general nutrition advice.",
+                    "servingSize": {
+                        "quantity": 4,
+                        "unitOfMeasure": {
+                            "abbreviation": "oz",
+                            "code": "ONZ",
+                            "name": "Ounce"
+                        }
+                    },
+                    "nutrients": [
+                        {
+                            "code": "FAT",
+                            "description": "fat, total",
+                            "displayName": "Total Fat",
+                            "percentDailyIntake": 2,
+                            "quantity": 1.5,
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "GRM",
+                                "name": "Gram"
+                            }
+                        },
+                        {
+                            "code": "K",
+                            "description": "potassium",
+                            "displayName": "Potassium",
+                            "percentDailyIntake": 8,
+                            "quantity": 360,
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "MGM",
+                                "name": "Milligram"
+                            }
+                        },
+                        {
+                            "code": "CHOL-",
+                            "description": "cholesterol; method of determination unknown or variable",
+                            "displayName": "Cholesterol",
+                            "percentDailyIntake": 22,
+                            "quantity": 65,
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "MGM",
+                                "name": "Milligram"
+                            }
+                        },
+                        {
+                            "code": "NA",
+                            "description": "sodium",
+                            "displayName": "Sodium",
+                            "percentDailyIntake": 4,
+                            "quantity": 90,
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "MGM",
+                                "name": "Milligram"
+                            }
+                        },
+                        {
+                            "code": "SUGAR",
+                            "description": "sugars, total",
+                            "displayName": "Sugar",
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "GRM",
+                                "name": "Gram"
+                            }
+                        },
+                        {
+                            "code": "VITD",
+                            "description": "vitamin D; calculated by summation of ergocalciferol and cholecalciferol",
+                            "displayName": "Vitamin D",
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "MC",
+                                "name": "Microgram"
+                            }
+                        },
+                        {
+                            "code": "FE",
+                            "description": "iron, total",
+                            "displayName": "Iron",
+                            "percentDailyIntake": 4,
+                            "quantity": 0.7,
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "MGM",
+                                "name": "Milligram"
+                            }
+                        },
+                        {
+                            "code": "SUGAD",
+                            "description": "sugar, added",
+                            "displayName": "Added Sugar",
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "GRM",
+                                "name": "Gram"
+                            }
+                        },
+                        {
+                            "code": "CA",
+                            "description": "calcium",
+                            "displayName": "Calcium",
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "MGM",
+                                "name": "Milligram"
+                            }
+                        },
+                        {
+                            "code": "PRO-",
+                            "description": "protein, total; method of determination unknown or variable",
+                            "displayName": "Protein",
+                            "quantity": 25,
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "GRM",
+                                "name": "Gram"
+                            }
+                        },
+                        {
+                            "code": "ENER-",
+                            "description": "energy; method of determination unknown or variable",
+                            "displayName": "Calories",
+                            "quantity": 110,
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "E14",
+                                "name": "Kilocalorie (international table)"
+                            }
+                        },
+                        {
+                            "code": "FASAT",
+                            "description": "fatty acids, total saturated",
+                            "displayName": "Saturated Fat",
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "GRM",
+                                "name": "Gram"
+                            }
+                        },
+                        {
+                            "code": "FIBTSW",
+                            "description": "fibre, total dietary; Wenlock modification",
+                            "displayName": "Dietary Fiber",
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "GRM",
+                                "name": "Gram"
+                            }
+                        },
+                        {
+                            "code": "FATRN",
+                            "description": "fatty acids, total trans",
+                            "displayName": "Trans Fat",
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "GRM",
+                                "name": "Gram"
+                            }
+                        },
+                        {
+                            "code": "CHO-",
+                            "description": "carbohydrate, total; method of determination unknown or variable",
+                            "displayName": "Total Carbohydrate",
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "GRM",
+                                "name": "Gram"
+                            }
+                        }
+                    ],
+                    "preparationState": {
+                        "code": "UNSPECIFIED",
+                        "name": "Unspecified"
+                    },
+                    "servingsPerPackage": {},
+                    "nutritionalRating": "65"
+                }
+            ]
+        },
+        {
+            "productId": "0025074900000",
+            "upc": "0025074900000",
+            "productPageURI": "/p/perdue-fresh-boneless-skinless-chicken-breasts/0025074900000?cid=dis.api.tpi_products-api_20240521_b:all_c:np_t:forkast-development-",
+            "aisleLocations": [],
+            "brand": "Perdue",
+            "categories": [
+                "Meat & Seafood",
+                "Natural & Organic"
+            ],
+            "countryOrigin": "UNITED STATES",
+            "description": "PERDUE\u00c2\u00ae Fresh Boneless Skinless Chicken Breasts",
+            "snapEligible": true,
+            "manufacturerDeclarations": [
+                "Dairy Free",
+                "Egg Free",
+                "Fish Free",
+                "Free from Peanuts",
+                "Tree Nuts Free",
+                "Soy Free"
+            ],
+            "allergens": [
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Wheat and Their Derivatives"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Crustaceans and their derivates"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Fish and their derivates"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Soybean and its Derivatives"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "CONTAINS TRACES OF TREE NUTS, I.E. ALMONDS, VARIOUS KINDS OF TREE NUTS"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Milk and its derivates"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Eggs and their derivates"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Peanuts and their derivates"
+                },
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Tree Nuts and Their Derivatives"
+                }
+            ],
+            "allergensDescription": "Free from Crustaceans and their derivates,Wheat and Their Derivatives,Eggs and their derivates,Fish and their derivates,Soybean and its Derivatives,CONTAINS TRACES OF TREE NUTS, I.E. ALMONDS, VARIOUS KINDS OF TREE NUTS,Milk and its derivates,Tree Nuts and Their Derivatives,Peanuts and their derivates.",
+            "organicClaimName": "NO",
+            "receiptDescription": "PRD CHK BRST BLSL",
+            "restrictions": {},
+            "images": [
+                {
+                    "perspective": "right"
+                },
+                {
+                    "perspective": "front",
+                    "featured": true,
+                    "sizes": [
+                        {
+                            "size": "xlarge",
+                            "url": "https://www.kroger.com/product/images/xlarge/front/0025074900000"
+                        },
+                        {
+                            "size": "large",
+                            "url": "https://www.kroger.com/product/images/large/front/0025074900000"
+                        },
+                        {
+                            "size": "medium",
+                            "url": "https://www.kroger.com/product/images/medium/front/0025074900000"
+                        },
+                        {
+                            "size": "small",
+                            "url": "https://www.kroger.com/product/images/small/front/0025074900000"
+                        },
+                        {
+                            "size": "thumbnail",
+                            "url": "https://www.kroger.com/product/images/thumbnail/front/0025074900000"
+                        }
+                    ]
+                },
+                {
+                    "perspective": "back"
+                },
+                {
+                    "perspective": "bottom"
+                },
+                {
+                    "perspective": "top"
+                },
+                {
+                    "perspective": "left"
+                }
+            ],
+            "items": [
+                {
+                    "itemId": "0025074900000",
+                    "inventory": {
+                        "stockLevel": "TEMPORARILY_OUT_OF_STOCK"
+                    },
+                    "favorite": false,
+                    "fulfillment": {
+                        "curbside": false,
+                        "delivery": false,
+                        "inStore": false,
+                        "shipToHome": false
+                    },
+                    "price": {
+                        "regular": 4.99,
+                        "regularPerUnitEstimate": 4.99,
+                        "expirationDate": {
+                            "value": "9999-12-31T00:00:00Z",
+                            "timezone": "Z"
+                        },
+                        "effectiveDate": {
+                            "value": "2026-09-29T06:44:51.103Z",
+                            "timezone": "Z"
+                        }
+                    },
+                    "size": "1 lb",
+                    "soldBy": "WEIGHT"
+                }
+            ],
+            "itemInformation": {
+                "depth": "2.75",
+                "height": "6.25",
+                "width": "8.75",
+                "grossWeight": "1.0 [lb_av]",
+                "netWeight": "1.0 [lb_av]",
+                "averageWeightPerUnit": "1.58 [lb_av]"
+            },
+            "temperature": {
+                "indicator": "Refrigerated",
+                "heatSensitive": false
+            },
+            "ratingsAndReviews": {
+                "averageOverallRating": 0,
+                "totalReviewCount": 0
+            },
+            "nutritionInformation": [
+                {
+                    "ingredientStatement": "APF BONELESS, SKINLESS BROILER BREAST W/ RM",
+                    "servingSize": {
+                        "unitOfMeasure": {}
+                    },
+                    "nutrients": [
+                        {
+                            "code": "VITA-",
+                            "description": "vitamin A; method of determination unknown",
+                            "displayName": "Vitamin A",
+                            "precision": {},
+                            "unitOfMeasure": {}
+                        },
+                        {
+                            "code": "FATRN",
+                            "description": "fatty acids, total trans",
+                            "displayName": "Trans Fat",
+                            "precision": {},
+                            "unitOfMeasure": {}
+                        },
+                        {
+                            "code": "CHO-",
+                            "description": "carbohydrate, total; method of determination unknown or variable",
+                            "displayName": "Total Carbohydrate",
+                            "precision": {},
+                            "unitOfMeasure": {}
+                        },
+                        {
+                            "code": "ENER-",
+                            "description": "energy; method of determination unknown or variable",
+                            "displayName": "Calories",
+                            "precision": {},
+                            "unitOfMeasure": {}
+                        },
+                        {
+                            "code": "FATNLEA",
+                            "description": "total fat by NLEA definition (triglyceride equivalents of fatty acids) g",
+                            "displayName": "Total Fat",
+                            "precision": {},
+                            "unitOfMeasure": {}
+                        },
+                        {
+                            "code": "SUGAR-",
+                            "description": "Sugars, tot, expression unknown",
+                            "displayName": "Sugar",
+                            "precision": {},
+                            "unitOfMeasure": {}
+                        },
+                        {
+                            "code": "FIBTSW",
+                            "description": "fibre, total dietary; Wenlock modification",
+                            "displayName": "Dietary Fiber",
+                            "precision": {},
+                            "unitOfMeasure": {}
+                        },
+                        {
+                            "code": "ENERPF",
+                            "description": "energy, percent contributed by fat",
+                            "displayName": "Calories from Fat",
+                            "precision": {},
+                            "unitOfMeasure": {}
+                        },
+                        {
+                            "code": "VITC-",
+                            "description": "Vit C unk.",
+                            "displayName": "Vitamin C",
+                            "precision": {},
+                            "unitOfMeasure": {}
+                        },
+                        {
+                            "code": "PRO-",
+                            "description": "protein, total; method of determination unknown or variable",
+                            "displayName": "Protein",
+                            "precision": {},
+                            "unitOfMeasure": {}
+                        },
+                        {
+                            "code": "CHOL-",
+                            "description": "cholesterol; method of determination unknown or variable",
+                            "displayName": "Cholesterol",
+                            "precision": {},
+                            "unitOfMeasure": {}
+                        },
+                        {
+                            "code": "CA",
+                            "description": "calcium",
+                            "displayName": "Calcium",
+                            "precision": {},
+                            "unitOfMeasure": {}
+                        },
+                        {
+                            "code": "NA",
+                            "description": "sodium",
+                            "displayName": "Sodium",
+                            "precision": {},
+                            "unitOfMeasure": {}
+                        },
+                        {
+                            "code": "FE",
+                            "description": "iron, total",
+                            "displayName": "Iron",
+                            "precision": {},
+                            "unitOfMeasure": {}
+                        },
+                        {
+                            "code": "FASAT",
+                            "description": "fatty acids, total saturated",
+                            "displayName": "Saturated Fat",
+                            "precision": {},
+                            "unitOfMeasure": {}
+                        }
+                    ],
+                    "preparationState": {
+                        "code": "UNPREPARED",
+                        "name": "Unprepared"
+                    },
+                    "servingsPerPackage": {},
+                    "nutritionalRating": "65"
+                }
+            ]
+        }
+    ],
+    "meta": {
+        "pagination": {
+            "start": 0,
+            "limit": 3,
+            "total": 23
+        }
+    }
+}

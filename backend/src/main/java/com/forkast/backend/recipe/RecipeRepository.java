@@ -16,6 +16,9 @@ public interface RecipeRepository extends JpaRepository<Recipe, UUID>, JpaSpecif
 
     boolean existsBySourceUrl(String sourceUrl);
 
+    @Query("select r.id from Recipe r")
+    List<UUID> findAllIds();
+
     /**
      * Loads a page of recipes with their labels in one query, instead of one query
      * per recipe.

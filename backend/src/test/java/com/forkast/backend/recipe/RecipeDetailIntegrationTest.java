@@ -85,4 +85,18 @@ class RecipeDetailIntegrationTest {
                 .isInstanceOfSatisfying(ApiException.class,
                         ex -> assertThat(ex.getStatus()).isEqualTo(HttpStatus.NOT_FOUND));
     }
+
+    @Test
+    void costIsPerServingAndTheEstimateScales() {
+        Recipe recipe = saveTestRecipe(); // 6 base servings
+        recipe.setCost(new BigDecimal("1.25"), true);
+        recipeRepository.saveAndFlush(recipe);
+        entityManager.clear();
+
+        RecipeDetailResponse detail = queryService.detail(UUID.randomUUID(), recipe.getId(), 4);
+
+        assertThat(detail.costPerServing()).isEqualByComparingTo("1.25");
+        assertThat(detail.estimatedCost()).isEqualByComparingTo("5.00"); // 4 servings
+        assertThat(detail.costComplete()).isTrue();
+    }
 }

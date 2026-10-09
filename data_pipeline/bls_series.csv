@@ -1,0 +1,24 @@
+ingredient,series_id,size,bls_item
+chicken breast,APU0000FF1101,1 lb,"Chicken breast, boneless"
+ground beef,APU0000703112,1 lb,"Ground beef, 100% beef"
+sirloin steak,APU0000703613,1 lb,"Steak, sirloin, USDA Choice, boneless"
+pork chop,APU0000FD3101,1 lb,All pork chops
+bacon,APU0000704111,1 lb,"Bacon, sliced"
+ham,APU0000704312,1 lb,"Ham, boneless, excluding canned"
+egg,APU0000708111,1 dozen,"Eggs, grade A, large"
+milk,APU0000709112,1 gal,"Milk, fresh, whole, fortified"
+butter,APU0000FS1101,1 lb,"Butter, stick"
+cheddar cheese,APU0000710212,1 lb,"Cheddar cheese, natural"
+plain yogurt,APU0000FJ4101,8 oz,Yogurt
+potato,APU0000712112,1 lb,"Potatoes, white"
+tomato,APU0000712311,1 lb,"Tomatoes, field grown"
+romaine lettuce,APU0000FL2101,1 lb,"Lettuce, romaine"
+corn,APU0000714221,1 lb,"Corn, canned, any style"
+lemon,APU0000711412,1 lb,Lemons
+banana,APU0000711211,1 lb,Bananas
+strawberries,APU0000711415,12 oz,"Strawberries, dry pint"
+all-purpose flour,APU0000701111,1 lb,"Flour, white, all purpose"
+white rice,APU0000701312,1 lb,"Rice, white, long grain, uncooked"
+pasta,APU0000701322,1 lb,Spaghetti and macaroni
+bread,APU0000702111,1 lb,"Bread, white, pan"
+granulated sugar,APU0000715211,1 lb,"Sugar, white, all sizes"
