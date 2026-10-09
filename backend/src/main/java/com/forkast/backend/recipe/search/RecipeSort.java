@@ -14,7 +14,9 @@ public enum RecipeSort {
     CALORIES,
     TIME,
     MEAL_PREP,
-    NEWEST;
+    NEWEST,
+    /** cheapest per serving first; recipes with no cost last */
+    COST;
 
     /** "mealPrep" and "meal_prep" both work; missing means FIT. */
     public static RecipeSort from(String value) {
@@ -26,7 +28,7 @@ public enum RecipeSort {
             return valueOf(normalized);
         } catch (IllegalArgumentException e) {
             throw ApiException.badRequest(
-                    "Unknown sort '" + value + "'. Use fit, protein, calories, time, mealPrep or newest.");
+                    "Unknown sort '" + value + "'. Use fit, protein, calories, time, mealPrep, newest or cost.");
         }
     }
 }

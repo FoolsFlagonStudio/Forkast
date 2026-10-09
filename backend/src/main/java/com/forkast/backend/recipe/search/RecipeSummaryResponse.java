@@ -9,7 +9,13 @@ import com.forkast.backend.recipe.Recipe;
 import com.forkast.backend.recipe.fit.FitFlag;
 import com.forkast.backend.recipe.fit.FitResult;
 
-/** One recipe card in search results and favorites. */
+/**
+ * One recipe card in search results and favorites. costPerServing is an
+ * estimate in USD from
+ * stored prices; costComplete is false when some lines couldn't be priced, so
+ * the real cost
+ * is higher than shown.
+ */
 public record RecipeSummaryResponse(
         UUID id,
         String name,
@@ -21,6 +27,8 @@ public record RecipeSummaryResponse(
         BigDecimal carbsGPerServing,
         BigDecimal fatGPerServing,
         boolean nutritionComplete,
+        BigDecimal costPerServing,
+        boolean costComplete,
         int mealPrepScore,
         List<String> labels,
         List<FitFlag> flags,
@@ -41,6 +49,8 @@ public record RecipeSummaryResponse(
                 recipe.getCarbsGPerServing(),
                 recipe.getFatGPerServing(),
                 recipe.isNutritionComplete(),
+                recipe.getCostPerServing(),
+                recipe.isCostComplete(),
                 recipe.getMealPrepScore(),
                 recipe.getDietaryLabels().stream().map(DietaryLabel::getName).sorted().toList(),
                 fit.flags(),

@@ -1,0 +1,704 @@
+{
+    "data": [
+        {
+            "productId": "0000000004093",
+            "upc": "0000000004093",
+            "productPageURI": "/p/onions-yellow/0000000004093?cid=dis.api.tpi_products-api_20240521_b:all_c:np_t:forkast-development-",
+            "aliasProductIds": [
+                "00009605204936",
+                "00050269140931",
+                "00050269540939",
+                "00050269440932",
+                "00050269340935",
+                "00050269240938",
+                "00091434001022",
+                "08870581000148",
+                "00041220231362",
+                "00085045700283",
+                "00050269146650",
+                "00096052046653",
+                "00050269244653",
+                "00040776010728",
+                "01000960520401",
+                "00887051000148",
+                "00821783046654",
+                "00815860010775",
+                "00885677002058",
+                "00853735006003",
+                "00813682015398",
+                "00850022653148",
+                "00812856012249",
+                "00859816003022",
+                "00851339002223",
+                "00850000774322",
+                "00850033568028",
+                "00847886001864",
+                "00812856012232",
+                "00881200040931",
+                "00811009021916",
+                "00882645000955",
+                "00815222010009",
+                "00824206007065",
+                "08602002706205",
+                "00850457002085",
+                "00733821046659",
+                "00854436002011",
+                "00853476003026",
+                "00899879002037",
+                "00204093000002",
+                "08600027062078",
+                "00729062111782",
+                "00852985003282",
+                "00851343004053",
+                "00853476003088",
+                "00815650010756",
+                "00850907006175",
+                "00848406056685",
+                "00860002706207",
+                "00858179002062",
+                "00735718000034",
+                "00819255022091"
+            ],
+            "aisleLocations": [
+                {
+                    "description": "PRODUCE",
+                    "number": "0"
+                }
+            ],
+            "categories": [
+                "Produce"
+            ],
+            "description": "Onions - Yellow",
+            "receiptDescription": "ONION YLW COLOSSAL",
+            "restrictions": {},
+            "images": [
+                {
+                    "perspective": "front",
+                    "featured": true
+                }
+            ],
+            "items": [
+                {
+                    "itemId": "0000000004093",
+                    "favorite": false,
+                    "fulfillment": {
+                        "curbside": true,
+                        "delivery": true,
+                        "inStore": true,
+                        "shipToHome": false
+                    },
+                    "price": {
+                        "regular": 1.29,
+                        "regularPerUnitEstimate": 1.29,
+                        "expirationDate": {
+                            "value": "9999-12-31T00:00:00Z",
+                            "timezone": "Z"
+                        },
+                        "effectiveDate": {
+                            "value": "2026-09-30T16:36:00.091Z",
+                            "timezone": "Z"
+                        }
+                    },
+                    "size": "1 lb",
+                    "soldBy": "WEIGHT"
+                }
+            ],
+            "itemInformation": {
+                "depth": "3.0",
+                "height": "3.0",
+                "width": "3.0",
+                "averageWeightPerUnit": "0.5 [lb_av]"
+            },
+            "temperature": {
+                "indicator": "Ambient",
+                "heatSensitive": false
+            },
+            "ratingsAndReviews": {
+                "averageOverallRating": 5,
+                "totalReviewCount": 1
+            },
+            "nutritionInformation": null
+        },
+        {
+            "productId": "0000000094093",
+            "upc": "0000000094093",
+            "productPageURI": "/p/organic-onions-yellow/0000000094093?cid=dis.api.tpi_products-api_20240521_b:all_c:np_t:forkast-development-",
+            "aliasProductIds": [
+                "00034924007999",
+                "00081100902135",
+                "00081614011712",
+                "00033074301919",
+                "01108196140117",
+                "00096052940937",
+                "00045255247220",
+                "00078951002817",
+                "00032303940936",
+                "00033074301292",
+                "81132303940938",
+                "00078783984176",
+                "00857417005780",
+                "00850310002276",
+                "08113230394091",
+                "00859816003060",
+                "10729062940938",
+                "00850029157021",
+                "00789622525404",
+                "00653571940932",
+                "00816717010504",
+                "00897810002115",
+                "00811289020050",
+                "09085002915706",
+                "00819614011711",
+                "00811009021930",
+                "10819614011718",
+                "00294093000003",
+                "01008550170029",
+                "00811323039406",
+                "00729062940931",
+                "90850029157024",
+                "01081961401173",
+                "00294665000004",
+                "00885677000948",
+                "00733821946652",
+                "00851339002292",
+                "00762453260041",
+                "00850029157052",
+                "00767776701134",
+                "10811944022921",
+                "01008131339401",
+                "00813559021415",
+                "01811323039405",
+                "06535719409324",
+                "00811944022924",
+                "00733821940933",
+                "90850029157055",
+                "00857323004259",
+                "00813559020074",
+                "00840171540932",
+                "00813559021606",
+                "00897810002108",
+                "00767776701141",
+                "00813133020063",
+                "00815860010768",
+                "07503023470421",
+                "10667796003805",
+                "07624530362617",
+                "00899879002112",
+                "01944206129853",
+                "00813682015862",
+                "00813133940934",
+                "07563623470429",
+                "00881200940934",
+                "00815222010139",
+                "00864868000172",
+                "00081010588023",
+                "00810105880243"
+            ],
+            "aisleLocations": [
+                {
+                    "description": "PRODUCE",
+                    "number": "0"
+                }
+            ],
+            "categories": [
+                "Produce",
+                "Natural & Organic"
+            ],
+            "description": "Organic - Onions - Yellow",
+            "receiptDescription": "0NIONS ORGNC",
+            "restrictions": {},
+            "images": [
+                {
+                    "perspective": "front",
+                    "featured": true,
+                    "sizes": [
+                        {
+                            "size": "xlarge",
+                            "url": "https://www.kroger.com/product/images/xlarge/front/0000000094093"
+                        },
+                        {
+                            "size": "large",
+                            "url": "https://www.kroger.com/product/images/large/front/0000000094093"
+                        },
+                        {
+                            "size": "medium",
+                            "url": "https://www.kroger.com/product/images/medium/front/0000000094093"
+                        },
+                        {
+                            "size": "small",
+                            "url": "https://www.kroger.com/product/images/small/front/0000000094093"
+                        },
+                        {
+                            "size": "thumbnail",
+                            "url": "https://www.kroger.com/product/images/thumbnail/front/0000000094093"
+                        }
+                    ]
+                }
+            ],
+            "items": [
+                {
+                    "itemId": "0000000094093",
+                    "favorite": false,
+                    "fulfillment": {
+                        "curbside": true,
+                        "delivery": true,
+                        "inStore": true,
+                        "shipToHome": false
+                    },
+                    "price": {
+                        "regular": 1.69,
+                        "regularPerUnitEstimate": 1.69,
+                        "expirationDate": {
+                            "value": "9999-12-31T00:00:00Z",
+                            "timezone": "Z"
+                        },
+                        "effectiveDate": {
+                            "value": "2026-09-29T06:42:21.208Z",
+                            "timezone": "Z"
+                        }
+                    },
+                    "size": "1 lb",
+                    "soldBy": "WEIGHT"
+                }
+            ],
+            "itemInformation": {
+                "depth": "3.5",
+                "height": "3.0",
+                "width": "3.5",
+                "averageWeightPerUnit": "0.5 [lb_av]"
+            },
+            "temperature": {
+                "indicator": "Ambient",
+                "heatSensitive": false
+            },
+            "ratingsAndReviews": {
+                "averageOverallRating": 0,
+                "totalReviewCount": 0
+            },
+            "nutritionInformation": [
+                {
+                    "ingredientStatement": "Organic Yellow Onions : NutriFacts Based On USDA Food-A-Pedia.com; (Basic Green Onion) 1 Cup Chopped, Raw",
+                    "servingSize": {
+                        "unitOfMeasure": {}
+                    },
+                    "nutrients": [
+                        {
+                            "code": "ENER-",
+                            "description": "energy; method of determination unknown or variable",
+                            "precision": {},
+                            "unitOfMeasure": {}
+                        }
+                    ],
+                    "preparationState": {
+                        "code": "UNPREPARED",
+                        "name": "Unprepared"
+                    },
+                    "servingsPerPackage": {}
+                },
+                {
+                    "ingredientStatement": "Organic Yellow Onions : NutriFacts Based On USDA Food-A-Pedia.com; (Basic Green Onion) 1 Cup Chopped, Raw",
+                    "servingSize": {
+                        "unitOfMeasure": {}
+                    },
+                    "nutrients": [
+                        {
+                            "code": "ENER-",
+                            "description": "energy; method of determination unknown or variable",
+                            "quantity": 1,
+                            "precision": {},
+                            "unitOfMeasure": {
+                                "code": "PTN",
+                                "name": "portion"
+                            }
+                        }
+                    ],
+                    "preparationState": {
+                        "code": "UNPREPARED",
+                        "name": "Unprepared"
+                    },
+                    "servingsPerPackage": {}
+                }
+            ]
+        },
+        {
+            "productId": "0001111091682",
+            "upc": "0001111091682",
+            "productPageURI": "/p/kroger-yellow-onion-3-lb-bag/0001111091682?cid=dis.api.tpi_products-api_20240521_b:all_c:np_t:forkast-development-",
+            "aliasProductIds": [
+                "00027028294969",
+                "00033383602929",
+                "08856777111034",
+                "00096052600022",
+                "00033383600079",
+                "00014881021542",
+                "00071228131333",
+                "00014881021610",
+                "00036800316676",
+                "00086167001302",
+                "00047303011036",
+                "00085500000842",
+                "00085584000035",
+                "00085584300005",
+                "00851573002355",
+                "00819614010547",
+                "00111509909296",
+                "00705123600020",
+                "00857359002212",
+                "00851533003293",
+                "00853120003006",
+                "00850009423061",
+                "00824206007102",
+                "00466693600024",
+                "00885677711103",
+                "00857669006498",
+                "00717524333063",
+                "00851362004065",
+                "00659513002225",
+                "00810034120038",
+                "00885677001242",
+                "00887051000025",
+                "00851339002056",
+                "00883616002114",
+                "00211306003422",
+                "00034924000488",
+                "00810105880342",
+                "00857514004006",
+                "00735718000041",
+                "00003338360020",
+                "00333836000242",
+                "00813559022290"
+            ],
+            "aisleLocations": [
+                {
+                    "description": "PRODUCE",
+                    "number": "0"
+                }
+            ],
+            "brand": "Kroger",
+            "categories": [
+                "Produce"
+            ],
+            "description": "Kroger\u00c2\u00ae Yellow Onion 3 lb Bag",
+            "allergens": [
+                {
+                    "levelOfContainmentName": "Free from",
+                    "name": "Does Not Contain Declaration Obligatory Allergens"
+                }
+            ],
+            "allergensDescription": "Free from Does Not Contain Declaration Obligatory Allergens.",
+            "receiptDescription": "ONIONS YLW",
+            "restrictions": {},
+            "images": [
+                {
+                    "perspective": "back"
+                },
+                {
+                    "perspective": "front",
+                    "featured": true
+                }
+            ],
+            "items": [
+                {
+                    "itemId": "0001111091682",
+                    "inventory": {
+                        "stockLevel": "HIGH"
+                    },
+                    "favorite": false,
+                    "fulfillment": {
+                        "curbside": true,
+                        "delivery": true,
+                        "inStore": true,
+                        "shipToHome": false
+                    },
+                    "price": {
+                        "regular": 3.79,
+                        "expirationDate": {
+                            "value": "9999-12-31T00:00:00Z",
+                            "timezone": "Z"
+                        },
+                        "effectiveDate": {
+                            "value": "2026-09-29T07:49:22.918Z",
+                            "timezone": "Z"
+                        }
+                    },
+                    "size": "3 lb",
+                    "soldBy": "UNIT"
+                }
+            ],
+            "itemInformation": {
+                "depth": "6.0",
+                "height": "3.0",
+                "width": "8.0"
+            },
+            "temperature": {
+                "indicator": "Ambient",
+                "heatSensitive": false
+            },
+            "ratingsAndReviews": {
+                "averageOverallRating": 0,
+                "totalReviewCount": 0
+            },
+            "nutritionInformation": [
+                {
+                    "ingredientStatement": "Onions",
+                    "servingSize": {
+                        "quantity": 94,
+                        "unitOfMeasure": {
+                            "abbreviation": "g",
+                            "code": "GRM",
+                            "name": "Gram"
+                        }
+                    },
+                    "nutrients": [
+                        {
+                            "code": "PRO-",
+                            "description": "protein, total; method of determination unknown or variable",
+                            "quantity": 1.28,
+                            "precision": {
+                                "code": "UNSPECIFIED",
+                                "name": "Unspecified"
+                            },
+                            "unitOfMeasure": {
+                                "code": "GRM",
+                                "name": "Gram"
+                            }
+                        },
+                        {
+                            "code": "FE",
+                            "description": "iron, total",
+                            "percentDailyIntake": 1,
+                            "precision": {
+                                "code": "UNSPECIFIED",
+                                "name": "Unspecified"
+                            },
+                            "unitOfMeasure": {}
+                        },
+                        {
+                            "code": "FASAT",
+                            "description": "fatty acids, total saturated",
+                            "precision": {
+                                "code": "UNSPECIFIED",
+                                "name": "Unspecified"
+                            },
+                            "unitOfMeasure": {
+                                "code": "GRM",
+                                "name": "Gram"
+                            }
+                        },
+                        {
+                            "code": "MG",
+                            "description": "magnesium",
+                            "percentDailyIntake": 3,
+                            "precision": {
+                                "code": "UNSPECIFIED",
+                                "name": "Unspecified"
+                            },
+                            "unitOfMeasure": {}
+                        },
+                        {
+                            "code": "SUGAR",
+                            "description": "sugars, total",
+                            "quantity": 4.26,
+                            "precision": {
+                                "code": "UNSPECIFIED",
+                                "name": "Unspecified"
+                            },
+                            "unitOfMeasure": {
+                                "code": "GRM",
+                                "name": "Gram"
+                            }
+                        },
+                        {
+                            "code": "FATRN",
+                            "description": "fatty acids, total trans",
+                            "precision": {
+                                "code": "UNSPECIFIED",
+                                "name": "Unspecified"
+                            },
+                            "unitOfMeasure": {
+                                "code": "GRM",
+                                "name": "Gram"
+                            }
+                        },
+                        {
+                            "code": "CHOL-",
+                            "description": "cholesterol; method of determination unknown or variable",
+                            "precision": {
+                                "code": "UNSPECIFIED",
+                                "name": "Unspecified"
+                            },
+                            "unitOfMeasure": {
+                                "code": "MGM",
+                                "name": "Milligram"
+                            }
+                        },
+                        {
+                            "code": "ZN",
+                            "description": "zinc",
+                            "percentDailyIntake": 1,
+                            "precision": {
+                                "code": "UNSPECIFIED",
+                                "name": "Unspecified"
+                            },
+                            "unitOfMeasure": {}
+                        },
+                        {
+                            "code": "CHO-",
+                            "description": "carbohydrate, total; method of determination unknown or variable",
+                            "percentDailyIntake": 3,
+                            "quantity": 9.54,
+                            "precision": {
+                                "code": "UNSPECIFIED",
+                                "name": "Unspecified"
+                            },
+                            "unitOfMeasure": {
+                                "code": "GRM",
+                                "name": "Gram"
+                            }
+                        },
+                        {
+                            "code": "ENERPF",
+                            "description": "energy, percent contributed by fat",
+                            "quantity": 2,
+                            "precision": {
+                                "code": "UNSPECIFIED",
+                                "name": "Unspecified"
+                            },
+                            "unitOfMeasure": {
+                                "code": "D70",
+                                "name": "Calorie - International Table (IT)"
+                            }
+                        },
+                        {
+                            "code": "CA",
+                            "description": "calcium",
+                            "percentDailyIntake": 2,
+                            "precision": {
+                                "code": "UNSPECIFIED",
+                                "name": "Unspecified"
+                            },
+                            "unitOfMeasure": {}
+                        },
+                        {
+                            "code": "NA",
+                            "description": "sodium",
+                            "precision": {
+                                "code": "UNSPECIFIED",
+                                "name": "Unspecified"
+                            },
+                            "unitOfMeasure": {
+                                "code": "MGM",
+                                "name": "Milligram"
+                            }
+                        },
+                        {
+                            "code": "VITA",
+                            "description": "vitamin A; calculated by summation of the vitamin A activities of retinol and the active carotenoids",
+                            "precision": {
+                                "code": "UNSPECIFIED",
+                                "name": "Unspecified"
+                            },
+                            "unitOfMeasure": {}
+                        },
+                        {
+                            "code": "P",
+                            "description": "phosphorus",
+                            "percentDailyIntake": 3,
+                            "precision": {
+                                "code": "UNSPECIFIED",
+                                "name": "Unspecified"
+                            },
+                            "unitOfMeasure": {}
+                        },
+                        {
+                            "code": "VITK",
+                            "description": "vitamin K",
+                            "percentDailyIntake": 1,
+                            "precision": {
+                                "code": "UNSPECIFIED",
+                                "name": "Unspecified"
+                            },
+                            "unitOfMeasure": {}
+                        },
+                        {
+                            "code": "FAT",
+                            "description": "fat, total",
+                            "quantity": 0.18,
+                            "precision": {
+                                "code": "UNSPECIFIED",
+                                "name": "Unspecified"
+                            },
+                            "unitOfMeasure": {
+                                "code": "GRM",
+                                "name": "Gram"
+                            }
+                        },
+                        {
+                            "code": "ENER-",
+                            "description": "energy; method of determination unknown or variable",
+                            "quantity": 41,
+                            "precision": {
+                                "code": "UNSPECIFIED",
+                                "name": "Unspecified"
+                            },
+                            "unitOfMeasure": {
+                                "code": "D70",
+                                "name": "Calorie - International Table (IT)"
+                            }
+                        },
+                        {
+                            "code": "VITC",
+                            "description": "vitamin C",
+                            "percentDailyIntake": 8,
+                            "precision": {
+                                "code": "UNSPECIFIED",
+                                "name": "Unspecified"
+                            },
+                            "unitOfMeasure": {}
+                        },
+                        {
+                            "code": "SE",
+                            "description": "selenium, total",
+                            "percentDailyIntake": 1,
+                            "precision": {
+                                "code": "UNSPECIFIED",
+                                "name": "Unspecified"
+                            },
+                            "unitOfMeasure": {}
+                        },
+                        {
+                            "code": "FIBTSW",
+                            "description": "fibre, total dietary; Wenlock modification",
+                            "percentDailyIntake": 5,
+                            "quantity": 1.3,
+                            "precision": {
+                                "code": "UNSPECIFIED",
+                                "name": "Unspecified"
+                            },
+                            "unitOfMeasure": {
+                                "code": "GRM",
+                                "name": "Gram"
+                            }
+                        }
+                    ],
+                    "preparationState": {
+                        "code": "UNPREPARED",
+                        "name": "Unprepared"
+                    },
+                    "servingsPerPackage": {
+                        "description": "1.0",
+                        "value": 1
+                    },
+                    "nutritionalRating": "99"
+                }
+            ]
+        }
+    ],
+    "meta": {
+        "pagination": {
+            "start": 0,
+            "limit": 3,
+            "total": 3
+        }
+    }
+}

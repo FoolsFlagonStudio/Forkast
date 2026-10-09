@@ -4,7 +4,7 @@ A mobile meal planner that builds your weekly recipes and grocery list around yo
 
 Users set a weekly budget, household size, dietary restrictions, and optional calorie/macro targets. Each week Forkast generates a meal plan and an aggregated grocery list priced to fit that budget.
 
-> **Status:** early development. The backend data model, Flyway migrations, authentication, user preferences, and the recipe data pipeline are complete: a 153-ingredient catalog from USDA FoodData Central, and scraped recipes with parsed ingredients, nutrition, dietary labels and meal-prep scores. Recipe endpoints and the meal plan generator are next. The frontend and mobile app have not been started.
+> **Status:** early development. The backend data model, Flyway migrations, authentication, user preferences, and the recipe data pipeline are complete: a 153-ingredient catalog from USDA FoodData Central, and scraped recipes with parsed ingredients, nutrition, dietary labels and meal-prep scores. Recipe search, scaled detail and favorites are live, and every recipe has an estimated cost per serving from weekly Kroger prices. The meal plan generator is next. The frontend and mobile app have not been started.
 
 ## How It Fits Together
 
@@ -17,8 +17,8 @@ recipe-scrapers  ── POST ──▶  parse, match, classify   ◀── REST 
                               PostgreSQL (Supabase)
 ```
 
-- **data_pipeline** builds the ingredient catalog from FoodData Central, scrapes recipe pages, and sends the raw data to the backend. It does no parsing itself.
-- **backend** owns all data: recipe parsing, ingredient matching, nutrition, pricing, dietary labels, and meal plan generation.
+- **data_pipeline** builds the ingredient catalog from FoodData Central, scrapes recipe pages, maps ingredients to Kroger products, imports BLS average prices, and sends it all to the backend. It does no parsing or pricing math itself.
+- **backend** owns all data: recipe parsing, ingredient matching, nutrition, pricing (a weekly Kroger refresh and recipe cost per serving), dietary labels, and meal plan generation.
 - **mobile** is the user-facing app and talks only to the backend API.
 - **frontend** is a static marketing site with general information and links to the app stores. It doesn't call the backend.
 
@@ -41,7 +41,7 @@ recipe-scrapers  ── POST ──▶  parse, match, classify   ◀── REST 
 | Website        | Vite + TypeScript (planned)                                                                        |
 | Data pipeline  | Python, `recipe-scrapers`, `requests`                                                              |
 | Nutrition data | USDA FoodData Central                                                                              |
-| Price data     | Open Prices (Open Food Facts), with manual entries as fallback                                     |
+| Price data     | Kroger Products API (one store, refreshed weekly), BLS average prices, hand-entered seed prices    |
 
 ## Roadmap
 
@@ -52,9 +52,9 @@ recipe-scrapers  ── POST ──▶  parse, match, classify   ◀── REST 
 - [x] Auth (signup, login, JWT + refresh tokens)
 - [x] User and preferences endpoints
 - [x] Recipe data pipeline (catalog, scraper, parser, matcher, nutrition, labels, review queue)
-- [ ] Recipe endpoints (browse, search, scale, favorite)
-- [ ] Meal plan generator
-- [ ] Grocery list and pricing
+- [x] Recipe endpoints (search with fit flags, scaled detail, favorites)
+- [x] Pricing (Kroger + BLS prices, recipe cost per serving, weekly refresh)
+- [ ] Meal plan generator and grocery list
 - [ ] Mobile app
 - [ ] Marketing website
 
@@ -63,4 +63,5 @@ recipe-scrapers  ── POST ──▶  parse, match, classify   ◀── REST 
 Ideas deliberately left out of v1:
 
 - **Per-slot day selection.** Let a meal slot cover only some days (e.g. lunches on weekdays only). In v1 every included slot covers all 7 days of the plan.
-- **Automatic weekly generation.** A scheduled job builds each user's plan the night before their plan start day and sends a push notification. v1 generates on demand.
+- **Push notifications.** v1 generates each user's plan automatically before their plan start day; a push notification when it's ready comes later.
+- **Regional prices.** v1 prices everything from one Kroger store; letting users pick a store or ZIP code comes later.

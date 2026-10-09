@@ -1,0 +1,158 @@
+ingredient,product_id,label,size,sold_by,price,active
+all-purpose flour,0007101201050,"King Arthur All Purpose Unbleached Flour, Non-GMO Project, Certified Kosher, No Preservatives",5 lbs,UNIT,6.99,true
+almonds,0004157005670,Almond Breeze Unsweetened Original Almondmilk,1/2 gal,UNIT,3.79,true
+apple,0001111003962,Kroger 100% Apple Juice,64 fl oz,UNIT,2.99,true
+apple cider vinegar,0001111086203,Kroger Apple Cider Vinegar Jug,1 gal,UNIT,6.99,true
+asparagus,0001111080120,Kroger Extra Long Asparagus Spears Can,15 oz,UNIT,3.69,true
+avocado,0000000004225,Large Avocado,1 ct,UNIT,2.5,true
+bacon,0001111097191,Kroger Naturally Hardwood Smoked Bacon,16 oz,UNIT,4.79,true
+baking powder,0001111085455,Kroger Baking Powder,10 oz,UNIT,2.49,true
+baking soda,0003320001110,Arm & Hammer Pure Baking Soda,1 lb,UNIT,1.79,true
+balsamic vinegar,0007040400103,Pompeian Balsamic Vinegar,16 fl oz,UNIT,4.49,true
+banana,0000000004011,Fresh Banana Bunch - About 5-7 per Bunch,1 lb,WEIGHT,0.69,true
+basil,0001111001060,Private Selection Mediterranean Basil Leaves,0.5 oz,UNIT,4.49,true
+bay leaf,0005210000698,McCormick Bay Leaves,0.12 oz,UNIT,4.49,true
+beef broth,0001111008596,Kroger Fat Free Beef Broth,32 oz,UNIT,1.59,true
+bell pepper,0000000004065,Fresh Large Green Bell Pepper,1 ct,UNIT,0.89,true
+black beans,0001111085972,Kroger Black Beans,16 oz,UNIT,1.89,true
+black pepper,0001111001054,Kroger Pure Ground Black Pepper,1.85 oz,UNIT,2.49,true
+blueberries,0001111003931,Private Selection Colossal Blueberries,9.8 oz,UNIT,5.99,true
+bread,0007225001137,Wonder Classic White Bread,20 oz,UNIT,3.29,true
+breadcrumbs,0004440013930,Gorton's Jumbo Butterfly Shrimp with Crunchy Panko Breadcrumbs,9.2 oz,UNIT,9.99,true
+broccoli,0000000004060,Broccoli,1 ct,UNIT,3.99,true
+brown rice,0001111084736,Kroger Instant Microwaveable Brown Rice,14 oz,UNIT,1.89,true
+brown sugar,0001111087660,Kroger Dark Brown Sugar,32 oz,UNIT,2.29,true
+butter,0001111089301,Kroger Salted Butter Sticks,4 sticks / 16 oz,UNIT,3.49,true
+butternut squash,0000000004759,Squash - Butternut,1 lb,WEIGHT,1.49,true
+cabbage,0000000004069,Green Cabbage,1 lb,WEIGHT,0.99,true
+canned tuna,0001111089084,Kroger Wild Caught Chunk Light Tuna in Water,5 oz,UNIT,0.97,true
+carrot,0001111091650,Kroger Shredded Carrots Bag,10 oz,UNIT,2.29,true
+cashews,0001111074287,Kroger Honey Roasted Cashews,9.5 oz,UNIT,5.99,true
+cashews,0002529300275,Silk Unsweetened Cashew Milk,64 fl oz,UNIT,4.69,false
+cauliflower,0000000004079,Cauliflower,1 ct,UNIT,4.49,true
+celery,0000000004070,Celery,1 ct,UNIT,2.59,true
+cheddar cheese,0001111058733,Kroger Sharp Cheddar Cheese Bar,16 oz,UNIT,3.69,true
+chicken breast,0021065600000,Heritage Farm Boneless Skinless Fresh Chicken Breast,1 lb,WEIGHT,2.69,true
+chicken broth,0001111004969,Kroger 99% Fat Free Chicken Broth,32 oz,UNIT,1.59,true
+chicken thigh,0021086500000,Heritage Farm Boneless Skinless Fresh Chicken Thighs,1 lb,WEIGHT,3.49,true
+chickpeas,0071146450659,Patak's Butter Chickpeas & Veggies,10.05 oz,UNIT,4.29,true
+chili powder,0001111072461,Kroger Chili Powder,7 oz,UNIT,6.49,true
+chocolate chips,0074759964015,Ghirardelli Semi-Sweet Chocolate Premium Baking Chips,12 oz,UNIT,8.99,true
+chuck roast,0024184200000,Choice Beef Chuck Roast,1 lb,WEIGHT,9.99,true
+cilantro,0000000004889,Cilantro,1 ct,UNIT,0.99,true
+cinnamon,0005210000438,McCormick Ground Cinnamon,2.37 oz,UNIT,3.49,true
+cocoa powder,0085178400742,PB2 Performance Peanut with Cocoa Protein Powder,32 oz,UNIT,31.99,true
+coconut milk,0073762801150,Thai Kitchen Unsweetened Coconut Milk,13.66 fl oz,UNIT,4.29,true
+cod,0004132212644,SeaPak Budweiser Beer Battered Cod Fillets,10 oz,UNIT,10.99,true
+corn,0001111084961,Kroger Frozen Super Sweet Corn,12 oz,UNIT,1.29,true
+corn tortilla,0001111008657,Kroger 100% White Corn Restaurant Style Tortilla Chips,18 oz,UNIT,2.69,true
+cornstarch,0004126038021,Comforts Fresh Scent Pure Cornstarch Baby Powder,22 oz,UNIT,2.99,true
+couscous,0007225100156,Near East Parmesan Couscous Mix,5.9 oz,UNIT,2.99,true
+cream cheese,0001111089202,Kroger Original Cream Cheese Brick,8 oz,UNIT,1.99,true
+crushed tomatoes,0000000058720,Kroger Crushed Peeled Tomatoes Case,24 ct / 14.5 oz,UNIT,1,false
+crushed tomatoes,0007236856617,DeLallo San Marzano Style Crushed Italian Tomatoes,28 oz,UNIT,5.79,true
+cucumber,0000000004062,Cucumber,1 ct,UNIT,0.89,true
+cumin,0005210000651,McCormick Ground Cumin,1.5 oz,UNIT,3.49,true
+curry powder,0001732400234,Spice Islands Curry Powder,2 oz,UNIT,7.99,true
+diced tomatoes,0006414428243,ROTEL Original Diced Tomatoes and Green Chilies,10 oz,UNIT,1.59,true
+egg,0001111060904,Kroger Grade A Extra Large Eggs,12 ct,UNIT,2.29,true
+egg noodles,0001111085126,Kroger Extra Wide Egg Noodles,16 oz,UNIT,2,true
+egg white,0001111060914,Kroger Grade A Large White Eggs,60 ct,UNIT,9.89,true
+feta cheese,0007027700006,Athenos Crumbled Traditional Feta Cheese,6 oz,UNIT,5.99,true
+fish sauce,0073762800100,Thai Kitchen Premium Fish Sauce,6.76 fl oz,UNIT,5.49,true
+flank steak,0021239600000,Private Selection Angus Beef Boneless Flank Steak,1 lb,WEIGHT,15.99,true
+flour tortilla,0001111005265,Kroger Soft Taco Size Flour Tortillas,10 ct / 17.5 oz,UNIT,1.99,true
+garlic,0001111081655,Kroger Parmesan Garlic Knots,8 oz,UNIT,2.49,true
+garlic powder,0001111000295,Kroger Garlic Powder,5.5 oz,UNIT,4.99,true
+ginger,0007800015216,Canada Dry Ginger Ale Soda 12 Cans,12 cans / 12 fl oz,UNIT,11.99,true
+granulated sugar,0001111088318,Kroger Pure Cane Granulated Sugar,4 lb,UNIT,3.99,true
+greek yogurt,0007835557010,The Greek Gods Honey Vanilla Greek Style Yogurt,24 oz,UNIT,4.79,true
+green beans,0001111091612,Kroger Green Beans,32 oz,UNIT,6,true
+green onion,0000000004068,Green Onions,1 ct,UNIT,1.19,true
+ground beef,0001111096972,Kroger 80/20 Ground Beef Tray 1 LB,1 lb,UNIT,7.99,true
+ground ginger,0001111068337,Kroger Ground Turmeric,1.5 oz,UNIT,2.49,true
+ground pork,0025343300000,Ground Pork,1 lb,WEIGHT,3.99,true
+ground turkey,0001111096875,Kroger 85/15 Fresh Ground Turkey Tray 1 LB,1 lb,UNIT,4.99,true
+half and half,0074236521670,Horizon Organic Half and Half,1 pt,UNIT,3.59,true
+ham,0021386300000,Kroger Fully Cooked Boneless Half Ham Limit 1 per Order,1 lb,WEIGHT,3.99,true
+heavy cream,0001111050315,Kroger Heavy Whipping Cream Pint,1 pt,UNIT,3.39,true
+hoisin sauce,0001111085181,Kroger Hoisin Sauce,15.3 oz,UNIT,3.99,true
+honey,0001111086170,Kroger Clover Honey Bear,12 oz,UNIT,4.49,true
+hot sauce,0007788588200,Tapatio Hot Sauce,10 fl oz,UNIT,3.39,true
+italian sausage,0001111097272,Kroger Mild Ground Italian Sausage,16 oz,UNIT,4.29,true
+italian seasoning,0005210000452,"McCormick Gourmet Organic Italian Seasoning, 0.55 OZ",0.55 oz,UNIT,6.99,true
+jalapeno,0001111084542,Kroger Diced Jalapeno Peppers,4 oz,UNIT,0.89,true
+kale,0000000004627,Greens - Kale,1 each,UNIT,1.49,true
+ketchup,0001111089232,Kroger Original Tomato Ketchup,64 oz,UNIT,3.49,true
+kidney beans,0001111085895,Kroger Light Red Kidney Beans,16 oz,UNIT,2.29,true
+lemon,0000000004053,Lemons,1 ct,UNIT,0.85,true
+lemon,0001111049197,Big K Lemon Lime Caffeine Free Soda Bottle,2 liter,UNIT,1,false
+lemon juice,0001111070205,Kroger 100% Lemon Juice,15 fl oz,UNIT,1.79,true
+lentils,0007152401253,La Preferida Lentils,16 oz,UNIT,1.69,true
+lime,0000000094048,Organic - Lime,1 each,UNIT,0.99,true
+lime,0001111049197,Big K Lemon Lime Caffeine Free Soda Bottle,2 liter,UNIT,1,false
+lime juice,0008474400101,Nellie & Joe's Key West Lime Juice,16 fl oz,UNIT,3.29,true
+maple syrup,0007468300310,Maple Grove Farms 100% Pure Maple Syrup,12.5 fl oz,UNIT,9.49,true
+marinara sauce,0074747900007,Rao's Homemade Marinara Sauce,24 oz,UNIT,7.99,true
+mayonnaise,0002100002631,Kraft Mayo with Olive Oil Reduced Fat Mayonnaise,30 fo,UNIT,4.99,true
+milk,0001111041700,Kroger 2% Reduced Fat Milk Gallon,1 gal,UNIT,3.59,true
+monterey jack cheese,0001111058624,Kroger Monterey Jack Cheese Bar,8 oz,UNIT,2,true
+mozzarella cheese,0001111001798,Kroger Whole Milk Shredded Mozzarella Cheese,8 oz,UNIT,2,true
+mushrooms,0001111091487,Kroger Sliced White Mushrooms,8 oz,UNIT,2.49,true
+mustard,0001111081088,Kroger Dijon Mustard,12 oz,UNIT,1.99,true
+nutmeg,0001111068312,Kroger Parsley Flakes,0.25 oz,UNIT,1.99,true
+olive oil,0063403930005,O Olive Oil California Aged Sherry Vinegar,10.1 fl oz,UNIT,9.49,true
+onion,0083418300705,ALEXIA Crispy Onion Rings with Panko Breading and Sea Salt,13.5 oz,UNIT,5.99,true
+onion powder,0005210000647,McCormick Onion Powder Shaker,2.62 oz,UNIT,3.99,true
+oregano,0001111068292,Kroger Oregano Leaves,0.5 oz,UNIT,1.99,true
+paprika,0005210000448,McCormick Paprika Shaker,2.12 oz,UNIT,3.29,true
+parmesan cheese,0001111058033,Kroger Parmesan Grated Cheese,8 oz,UNIT,3.29,true
+parsley,0001111068312,Kroger Parsley Flakes,0.25 oz,UNIT,1.99,true
+pasta,0001111085004,Kroger Spaghetti Pasta,16 oz,UNIT,1.33,true
+peanut butter,0001111001618,TK KMP Peanut Butter EA,16 oz,UNIT,2.29,true
+peanuts,0001111072451,Kroger Lightly Salted Peanuts,12 oz,UNIT,2.29,true
+peas,0001111089736,Kroger Frozen Sweet Green Peas,12 oz,UNIT,1.29,true
+pecans,0001111050726,Kroger Deluxe Southern Crunch Butter Pecan Ice Cream,48 fl oz,UNIT,2.99,true
+pinto beans,0001111085960,Kroger Pinto Beans,16 oz,UNIT,1.19,true
+plain yogurt,0068954408301,Fage Total 0% Milkfat Plain Greek Yogurt,32 oz,UNIT,7.29,true
+pork chop,0029315750000,Bone-In Pork Loin Center-Cut Thick Chops,1 lb,WEIGHT,4.79,true
+pork tenderloin,0020335800000,Kroger Fresh Natural Pork Tenderloin,1 lb,WEIGHT,4.99,true
+potato,0001111091760,Kroger Russet Potatoes,5 lb,UNIT,3.49,true
+quinoa,0008912512014,Ancient Harvest Traditional Quinoa,14.4 oz,UNIT,5.49,true
+red pepper flakes,0001111068327,Kroger Ground Red Cayenne Pepper,1.5 oz,UNIT,4.99,true
+red wine vinegar,0003915341305,Colavita Aged Red Wine Vinegar,17 fl oz,UNIT,5.99,true
+ricotta cheese,0001111048888,Kroger Whole Milk Ricotta Cheese Tub,15 oz,UNIT,2.99,true
+rolled oats,0003997803375,Bob's Red Mill Gluten Free Old Fashioned Whole Grain Rolled Oats,32 oz,UNIT,7.99,true
+romaine lettuce,0007143000951,Dole Chopped Romaine Lettuce,32 oz,UNIT,6.29,true
+rosemary,0001111068413,Kroger Rosemary Leaves,0.75 oz,UNIT,1.99,true
+salmon,0001111080139,Kroger Teriyaki Salmon,10 oz,UNIT,7.99,true
+salsa,0001111085373,Kroger Medium Salsa Con Queso Cheese Dip,15 oz,UNIT,2.99,true
+salt,0005210074602,McCormick Sea Salt Grinder,2.12 oz,UNIT,2.99,true
+sesame oil,0007050161820,Neutrogena Light Sesame Formula Body Oil,8.5 fl oz,UNIT,13.99,true
+sesame seeds,0007613213012,Sun Luck Toasted Sesame Seeds,3.75 oz,UNIT,4.99,true
+shallot,0000000004662,Onions - Shallot,1 lb,WEIGHT,3.99,true
+shrimp,0001111096389,Kroger Tail-On Medium Peeled & Deveined Cooked Shrimp,16 oz,UNIT,8.99,true
+sirloin steak,0001111001981,Private Selection Culinary Cuts Prime Beef Top Sirloin Steak,8 oz,UNIT,11.99,true
+sour cream,0001111046070,Kroger Original Sour Cream,16 oz,UNIT,1.99,true
+soy sauce,0001111070210,Kroger Lite Soy Sauce,15 fl oz,UNIT,1.99,true
+spinach,0001111087226,Kroger Recipe Beginnings Chopped Spinach,10 oz,UNIT,1.79,true
+sriracha,0002446306116,Huy Fong Sriracha Hot Chili Sauce,28 oz,UNIT,5.79,true
+strawberries,0003338320027,Fresh Strawberries,1 lb,UNIT,3.99,true
+sweet potato,0001111018219,Kroger Baker Sweet Potatoes,28 oz,UNIT,3.99,true
+thyme,0000000004907,Thyme,1 ct,UNIT,1.29,false
+thyme,0007766113978,Litehouse Freeze Dried Thyme,0.52 oz,UNIT,6.29,true
+tilapia,0082994409214,Great American Seafood Tilapia Fillets,3 lb,UNIT,11.99,true
+tofu,0008569660804,Mori-Nu Silken Firm Tofu,12.3 oz,UNIT,2.69,true
+tomato,0001111091686,Kroger Grape Tomatoes,10 oz,UNIT,2.99,true
+tomato paste,0007079640010,Cento Tomato Paste Tube,4.56 oz,UNIT,2.99,true
+tomato sauce,0004112907712,Classico Tomato & Basil Pasta Sauce,24 oz,UNIT,3.29,true
+turmeric,0001111068337,Kroger Ground Turmeric,1.5 oz,UNIT,2.49,true
+vanilla extract,0005210007103,McCormick Pure Vanilla Extract,2 fl oz,UNIT,8.79,true
+vegetable broth,0005260305410,"Pacific Foods Organic Vegetable Broth, Plant Based, 32 oz Carton",32 oz,UNIT,3.59,true
+vegetable oil,0001111085703,Fry's Pure Vegetable Oil,1 gal,UNIT,10.49,true
+walnuts,0007493600011,Hammons Black American Walnuts,8 oz,UNIT,8.29,true
+white beans,0003940001870,Bush's Best Cannellini White Kidney Beans,15.5 oz,UNIT,1.49,true
+white rice,0007440176041,RiceSelect Royal Blend Texmati White Brown Wild & Red Rice,21 oz,UNIT,8.29,true
+white vinegar,0001111003113,Kroger Distilled White Vinegar,1 gal,UNIT,3.99,true
+worcestershire sauce,0001111071928,Kroger Worcestershire Sauce,15 fl oz,UNIT,1.99,true
+zucchini,0000000004067,Zucchini,1 lb,WEIGHT,1.79,true

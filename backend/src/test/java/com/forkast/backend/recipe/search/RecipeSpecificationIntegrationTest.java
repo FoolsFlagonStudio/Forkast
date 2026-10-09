@@ -34,7 +34,7 @@ class RecipeSpecificationsIntegrationTest {
 
     private RecipeSearchCriteria only(Set<DietaryLabel> labels, BigDecimal minProtein,
             BigDecimal maxCalories, Integer maxMinutes, String text) {
-        return new RecipeSearchCriteria(text, labels, minProtein, maxCalories, maxMinutes);
+        return new RecipeSearchCriteria(text, labels, minProtein, maxCalories, maxMinutes, null);
     }
 
     @Test
@@ -69,6 +69,16 @@ class RecipeSpecificationsIntegrationTest {
             assertThat(recipe.getProteinGPerServing()).isGreaterThanOrEqualTo(new BigDecimal("20"));
             assertThat(recipe.getCaloriesPerServing()).isLessThanOrEqualTo(new BigDecimal("600"));
         });
+    }
+
+    @Test
+    void maxCostExcludesDearerAndUnpricedRecipes() {
+        List<Recipe> found = recipeRepository.findAll(RecipeSpecifications.matching(
+                new RecipeSearchCriteria(null, Set.of(), null, null, null, new BigDecimal("3.00"))));
+
+        assertThat(found).isNotEmpty().allSatisfy(recipe -> assertThat(recipe.getCostPerServing())
+                .isNotNull()
+                .isLessThanOrEqualTo(new BigDecimal("3.00")));
     }
 
     @Test

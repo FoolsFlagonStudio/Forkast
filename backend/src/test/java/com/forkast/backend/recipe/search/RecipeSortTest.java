@@ -18,6 +18,7 @@ class RecipeSortTest {
             "mealPrep,  MEAL_PREP",
             "meal_prep, MEAL_PREP",
             "NEWEST,    NEWEST",
+            "cost,      COST",
     })
     void acceptsTheUsualSpellings(String value, RecipeSort expected) {
         assertThat(RecipeSort.from(value)).isEqualTo(expected);
