@@ -1,4 +1,5 @@
 package com.forkast.backend.ingredient;
+
 import static com.forkast.backend.common.ValidationUtils.requireText;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -56,6 +57,13 @@ public class Ingredient {
 
     @Column(name = "fat_g_per_100g", precision = 7, scale = 2)
     private BigDecimal fatGPer100g;
+
+    /**
+     * Salt, oil, spices and similar: "check your pantry" on the grocery list, at
+     * usage cost
+     */
+    @Column(name = "pantry_staple", nullable = false)
+    private boolean pantryStaple = false;
 
     // ---------- timestamps ----------
 
@@ -155,6 +163,14 @@ public class Ingredient {
 
     public void setFatGPer100g(BigDecimal v) {
         this.fatGPer100g = v;
+    }
+
+    public boolean isPantryStaple() {
+        return pantryStaple;
+    }
+
+    public void setPantryStaple(boolean pantryStaple) {
+        this.pantryStaple = pantryStaple;
     }
 
     public List<IngredientPortion> getPortions() {

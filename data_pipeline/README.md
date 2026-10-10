@@ -12,23 +12,25 @@ Keeping the scripts thin means parsing rules live in one place, and the backend 
 
 ## Files
 
-| File                         | Purpose                                                                                                                     |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `common.py`                  | Loads `.env`, the backend URL, cache and log folders, the User-Agent, and `post_json` (adds the `X-Admin-Key` header)       |
-| `ingredients_seed.csv`       | The curated ingredient catalog: `name, query, fdc_id, fdc_description, aliases, tags` (aliases and tags are `\|`-separated) |
-| `find_fdc.py`                | Fills in blank `fdc_id`s by searching FDC; writes alternatives to `cache/fdc_candidates.csv`                                |
-| `fdc_lookup.py`              | Prints the FDC description for one or more ids, to check a hand-picked id                                                   |
-| `seed_ingredients.py`        | Fetches each food from FDC, extracts macros and portions, posts to the import route                                         |
-| `urls.txt`                   | Recipe URLs, one per line; `#` lines are comments                                                                           |
-| `scrape_recipes.py`          | Fetches, caches, scrapes and posts recipes; writes a JSON log to `logs/`                                                    |
-| `samples/ingest_sample.json` | A hand-written batch for testing the ingest route                                                                           |
-| `import_prices.py`           | `bls` imports the latest BLS average prices for `bls_series.csv`; `seed` imports `prices_seed.csv`                          |
-| `bls_series.csv`             | Catalog ingredient to BLS series id and size (23 series that BLS still publishes)                                           |
-| `prices_seed.csv`            | Hand-entered prices for ingredients no other source covers; `#` lines are comments                                          |
-| `kroger.py`                  | Kroger app token and product search                                                                                         |
-| `find_product.py`            | Maps catalog ingredients to Kroger products in `kroger_products.csv`; `--post` sends the mapping                            |
-| `kroger_products.csv`        | `ingredient, product_id, label, size, sold_by, price, active`: the reviewed mapping the weekly refresh re-prices            |
-| `cache/`, `logs/`            | Cached FDC responses and HTML, run logs; both gitignored                                                                    |
+| File                         | Purpose                                                                                                                                                             |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `common.py`                  | Loads `.env`, the backend URL, cache and log folders, the User-Agent, and `post_json` (adds the `X-Admin-Key` header)                                               |
+| `ingredients_seed.csv`       | The curated ingredient catalog: `name, query, fdc_id, fdc_description, aliases, tags, pantry` (aliases and tags are `\|`-separated; `pantry` is `true` for staples) |
+| `set_pantry.py`              | Marks the pantry staples (salt, oils, vinegars, dried spices, flour, sugar, leaveners) in `ingredients_seed.csv`; safe to re-run                                    |
+| `find_fdc.py`                | Fills in blank `fdc_id`s by searching FDC; writes alternatives to `cache/fdc_candidates.csv`                                                                        |
+| `fdc_lookup.py`              | Prints the FDC description for one or more ids, to check a hand-picked id                                                                                           |
+| `seed_ingredients.py`        | Fetches each food from FDC, extracts macros and portions, posts to the import route                                                                                 |
+| `urls.txt`                   | Recipe URLs, one per line; `#` lines are comments                                                                                                                   |
+| `urls_breakfast_lunch.txt`   | 44 Budget Bytes breakfast and lunch URLs, scraped so every meal slot has candidates                                                                                 |
+| `scrape_recipes.py`          | Fetches, caches, scrapes and posts recipes; writes a JSON log to `logs/`                                                                                            |
+| `samples/ingest_sample.json` | A hand-written batch for testing the ingest route                                                                                                                   |
+| `import_prices.py`           | `bls` imports the latest BLS average prices for `bls_series.csv`; `seed` imports `prices_seed.csv`                                                                  |
+| `bls_series.csv`             | Catalog ingredient to BLS series id and size (23 series that BLS still publishes)                                                                                   |
+| `prices_seed.csv`            | Hand-entered prices for ingredients no other source covers; `#` lines are comments                                                                                  |
+| `kroger.py`                  | Kroger app token and product search                                                                                                                                 |
+| `find_product.py`            | Maps catalog ingredients to Kroger products in `kroger_products.csv`; `--post` sends the mapping                                                                    |
+| `kroger_products.csv`        | `ingredient, product_id, label, size, sold_by, price, active`: the reviewed mapping the weekly refresh re-prices                                                    |
+| `cache/`, `logs/`            | Cached FDC responses and HTML, run logs; both gitignored                                                                                                            |
 
 ## Setup
 
@@ -59,9 +61,12 @@ cp .env.example .env               # then fill in the values
 ```bash
 python find_fdc.py            # fill blank fdc_ids, then review the matches
 python fdc_lookup.py 174036   # check a hand-picked id
+python set_pantry.py          # mark pantry staples (only writes when something changed)
 python seed_ingredients.py --dry-run
 python seed_ingredients.py    # 0 created / N updated on a re-run
 ```
+
+**Pantry staples.** A row with `pantry=true` goes in the grocery list's "check your pantry" group and counts at what the week uses (the teaspoon, not the jar) unless the user marks it "need to buy". `set_pantry.py` keeps the list of staples in one place; the flag only reaches the backend when `seed_ingredients.py` runs with the backend up. Check with `select count(*) from ingredients where pantry_staple;`.
 
 **Picking FDC foods.** `find_fdc.py` searches SR Legacy first, because its household portions ("1 large", "1 cup, chopped", "1 clove") are what recipe conversion needs; Foundation is the fallback. FDC search ranking is unreliable, so read every `fdc_description`. Watch for restaurant brands, cooked versions, branded items, and the wrong animal ("ground beef" matched ground turkey). Fix a row by pasting an id from `cache/fdc_candidates.csv`, or by clearing `fdc_id`, editing `query`, and re-running. A word starting with `-` in a query excludes that word, and `/` makes FDC return 400.
 
@@ -123,14 +128,15 @@ python find_product.py --post              # send kroger_products.csv to the bac
 curl -X POST -H "X-Admin-Key: $KEY" http://localhost:8080/api/admin/prices/refresh
 ```
 
-`find_product.py` searches the configured store and keeps the best guess: has a price, most words of the ingredient name, Kroger's store brand, not organic unless asked, not a drink or snack. The top 5 per ingredient go to `cache/kroger_candidates.csv`. Searches are cached in `cache/kroger/search/` (`--only` always searches again).
+`find_product.py` searches the configured store and keeps the best guess, in this order: has a price; most words of the ingredient name; not organic unless asked and not a drink or snack; the fewest other words, so "garlic" picks fresh garlic over Parmesan Garlic Knots and "onion" a yellow onion over onion rings (brand words don't count); then Kroger's store brand. The top 5 per ingredient go to `cache/kroger_candidates.csv`. Searches are cached in `cache/kroger/search/` (`--only` always searches again).
 
 **Review before posting.** Search ranking is a first guess:
 
 - "lemon" and "lime" return lemon-lime soda first; "cashews" returned cashew milk.
 - Prefer products with a weight in the size ("16 oz", "3 lb") or sold by weight. "1 each" or "1 ct" items get a price per 100 g only when Kroger gives the package weight; otherwise only a price per item, and cup or teaspoon lines stay unpriced.
 - Fresh herbs at this store come in 0.5 oz packages, which makes herb-heavy recipes expensive. Look for larger packages or use dried.
-- Watch for premium brands and case listings ("24 ct / 14.5 oz" priced per can).
+- Watch for premium brands and case listings ("24 ct / 14.5 oz" priced per can). When the store brand doesn't come up, search with the words it uses: `--query "long grain white rice"`, `--query "roma tomatoes"`.
+- The grocery list buys from these products in whole packages, so a wrong pick shows up there first (onion rings for onion, sherry vinegar for olive oil).
 
 Fix a pick by pasting a `product_id` from the candidates, add a second row as a backup (the cheaper one per 100 g wins), or set `active` to `false`. When `--only` finds a new match it keeps the old row with `active=false`, so `--post` switches it off in the backend and its old prices stop counting; delete those rows after posting. A search that finds nothing leaves the existing row alone.
 
@@ -172,6 +178,7 @@ All routes require the `X-Admin-Key` header.
       "name": "chicken breast",
       "aliases": ["chicken breasts"],
       "tags": ["POULTRY"],
+      "pantryStaple": false,
       "caloriesPer100g": 120.0,
       "proteinGPer100g": 22.5,
       "carbsGPer100g": 0.0,

@@ -12,9 +12,11 @@ cheaper one per 100 g wins), or set active to false to stop refreshing one. Then
 The backend's weekly refresh re-prices every active row; nothing here stores prices.
 
 Best match = has a price at the store, then the most words of the ingredient name in the
-description, then Kroger's store brand, then not organic unless the name says so, then not a
-drink or snack ("lemon" shouldn't be lemon-lime soda), then Kroger's own order. It's a first
-guess: the review is the real step.
+description, then not organic unless the name says so and not a drink or snack ("lemon"
+shouldn't be lemon-lime soda), then the fewest other words (so "garlic" picks fresh garlic, not
+Parmesan Garlic Knots, and "onion" a yellow onion, not onion rings; brand words don't count),
+then Kroger's store brand, then Kroger's own order. It's a first guess: the review is the real
+step.
 
 When --only finds a new match, it keeps the rows it replaces but sets them to active=false,
 so after --post the backend stops counting the old product's prices. Delete those rows once
@@ -98,18 +100,22 @@ def words(text):
 
 
 def score(ingredient, product):
-    """Higher is better; None when the store has no price for it."""
+    """Higher is better (compared in order); None when the store has no price for it."""
     item = kroger.first_priced_item(product)
     if item is None:
         return None
     label = kroger.clean_label(product.get("description")).lower()
+    brand = (product.get("brand") or "").lower()
     name_words = words(ingredient)
-    matched = len(name_words & words(label))
-    store_brand = 1 if (product.get("brand") or "").lower() == "kroger" else 0
+    label_words = words(label)
+    matched = len(name_words & label_words)
+    # words that make it a different product: "parmesan ... knots", "crispy ... rings"
+    extra = len(label_words - name_words - words(brand))
+    store_brand = 1 if brand == "kroger" else 0
     organic_penalty = -1 if "organic" in label and "organic" not in ingredient else 0
     categories = {c.lower() for c in product.get("categories") or []}
     category_penalty = -2 if categories & UNLIKELY_CATEGORIES else 0
-    return (matched, store_brand + organic_penalty + category_penalty)
+    return (matched, organic_penalty + category_penalty, -extra, store_brand)
 
 
 def search_cached(ingredient, term, refresh):
@@ -173,7 +179,7 @@ def find(only, query):
             continue
         scored = [(score(ingredient, p), i, p) for i, p in enumerate(results)]
         priced = sorted([s for s in scored if s[0] is not None],
-                        key=lambda s: (-s[0][0], -s[0][1], s[1]))
+                        key=lambda s: tuple(-x for x in s[0]) + (s[1],))
         for rank, (_, _, product) in enumerate(priced[:5], start=1):
             candidates.append({**as_row(ingredient, product), "rank": rank})
         if not priced:

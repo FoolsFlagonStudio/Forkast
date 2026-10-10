@@ -80,18 +80,20 @@ class PricingSchemaIntegrationTest {
 
     @Test
     void sameProductCantBeMappedTwice() {
+        // Made-up product ids: real ones (onion is mapped to 0000000004093 now) would
+        // already exist
         Ingredient onion = onion();
         productRepository
-                .saveAndFlush(new IngredientProduct(onion, PriceSource.KROGER, "0000000004093", "Onions - Yellow"));
-        productRepository.saveAndFlush(
-                new IngredientProduct(onion, PriceSource.KROGER, "0001111091682", "Kroger Yellow Onion 3 lb Bag"));
+                .saveAndFlush(new IngredientProduct(onion, PriceSource.KROGER, "TEST-PRODUCT-1", "Test onions"));
+        productRepository
+                .saveAndFlush(new IngredientProduct(onion, PriceSource.KROGER, "TEST-PRODUCT-2", "Test onion bag"));
 
         assertThat(productRepository.findActiveWithIngredient(PriceSource.KROGER))
                 .extracting(IngredientProduct::getExternalId)
-                .contains("0000000004093", "0001111091682");
+                .contains("TEST-PRODUCT-1", "TEST-PRODUCT-2");
 
         assertThatThrownBy(() -> productRepository.saveAndFlush(
-                new IngredientProduct(onion, PriceSource.KROGER, "0000000004093", "duplicate")))
+                new IngredientProduct(onion, PriceSource.KROGER, "TEST-PRODUCT-1", "duplicate")))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 

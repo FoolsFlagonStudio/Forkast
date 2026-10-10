@@ -81,6 +81,12 @@ public class UserPreferences {
     @Column(name = "prefers_meal_prep", nullable = false)
     private boolean prefersMealPrep = false;
 
+    /**
+     * Dinner leftovers fill the next day's lunch, within the 3-day freshness window
+     */
+    @Column(name = "leftovers_for_lunch", nullable = false)
+    private boolean leftoversForLunch = false;
+
     // ---------- timestamps ----------
 
     @CreationTimestamp
@@ -227,6 +233,14 @@ public class UserPreferences {
 
     public void setPrefersMealPrep(boolean prefersMealPrep) {
         this.prefersMealPrep = prefersMealPrep;
+    }
+
+    public boolean isLeftoversForLunch() {
+        return leftoversForLunch;
+    }
+
+    public void setLeftoversForLunch(boolean leftoversForLunch) {
+        this.leftoversForLunch = leftoversForLunch;
     }
 
     public Map<MealSlot, Integer> getMealSlots() {

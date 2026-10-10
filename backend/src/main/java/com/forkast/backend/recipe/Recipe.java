@@ -93,6 +93,15 @@ public class Recipe {
     @Column(name = "nutrition_complete", nullable = false)
     private boolean nutritionComplete = false;
 
+    @Column(name = "breakfast_score", nullable = false)
+    private int breakfastScore = 0;
+
+    @Column(name = "lunch_score", nullable = false)
+    private int lunchScore = 0;
+
+    @Column(name = "dinner_score", nullable = false)
+    private int dinnerScore = 0;
+
     @Column(name = "cost_per_serving", precision = 8, scale = 2)
     private BigDecimal costPerServing;
 
@@ -332,6 +341,33 @@ public class Recipe {
         this.carbsGPerServing = carbs;
         this.fatGPerServing = fat;
         this.nutritionComplete = complete;
+    }
+
+    /** 0 to 100 from SlotClassifier; a recipe can fill a slot at 50 or more. */
+    public int getBreakfastScore() {
+        return breakfastScore;
+    }
+
+    public int getLunchScore() {
+        return lunchScore;
+    }
+
+    public int getDinnerScore() {
+        return dinnerScore;
+    }
+
+    /** Sets all three slot scores at once, after classification. */
+    public void setSlotScores(int breakfast, int lunch, int dinner) {
+        this.breakfastScore = requireScore(breakfast, "breakfastScore");
+        this.lunchScore = requireScore(lunch, "lunchScore");
+        this.dinnerScore = requireScore(dinner, "dinnerScore");
+    }
+
+    private static int requireScore(int score, String field) {
+        if (score < 0 || score > 100) {
+            throw new IllegalArgumentException(field + " must be 0 to 100");
+        }
+        return score;
     }
 
     /** Estimated cost of one serving in USD; null when no line could be priced. */

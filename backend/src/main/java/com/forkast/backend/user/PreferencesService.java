@@ -85,6 +85,7 @@ public class PreferencesService {
         preferences.setRepeatAvoidanceDays(request.repeatAvoidanceDays());
         preferences.setPlanStartDay(request.planStartDay());
         preferences.setPrefersMealPrep(Boolean.TRUE.equals(request.prefersMealPrep()));
+        preferences.setLeftoversForLunch(Boolean.TRUE.equals(request.leftoversForLunch()));
 
         // 3. Dietary labels: every id must exist
         Set<UUID> ids = request.dietaryLabelIds() == null ? Set.of() : request.dietaryLabelIds();

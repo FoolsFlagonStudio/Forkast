@@ -1,0 +1,47 @@
+# Breakfasts (Budget Bytes), for the meal plan generator's breakfast slot
+https://www.budgetbytes.com/country-breakfast-bowls-freezable/
+https://www.budgetbytes.com/oatmeal-cookie-baked-oatmeal/
+https://www.budgetbytes.com/make-ahead-microwave-breakfast-scrambles/
+https://www.budgetbytes.com/cottage-cheese-breakfast-bowls-6-ways/
+https://www.budgetbytes.com/make-ahead-seeded-oats/
+https://www.budgetbytes.com/freezer-breakfast-burritos/
+https://www.budgetbytes.com/no-sugar-added-blueberry-almond-overnight-oats/
+https://www.budgetbytes.com/mango-coconut-chia-pudding/
+https://www.budgetbytes.com/veggie-packed-freezer-ready-breakfast-sandwiches/
+https://www.budgetbytes.com/no-sugar-added-apple-pie-overnight-oats/
+https://www.budgetbytes.com/blueberry-banana-baked-oatmeal/
+https://www.budgetbytes.com/tropical-yogurt-parfaits/
+https://www.budgetbytes.com/cheese-grits/
+https://www.budgetbytes.com/homemade-pancakes/
+https://www.budgetbytes.com/french-toast/
+https://www.budgetbytes.com/egg-muffins/
+https://www.budgetbytes.com/breakfast-pizza/
+https://www.budgetbytes.com/easy-quiche-lorraine/
+https://www.budgetbytes.com/how-to-make-a-frittata/
+https://www.budgetbytes.com/easy-crustless-quiche/
+https://www.budgetbytes.com/tortilla-baked-eggs/
+https://www.budgetbytes.com/sausage-and-egg-breakfast-quesadillas/
+https://www.budgetbytes.com/overnight-oats-base-recipe-plus-variations/
+https://www.budgetbytes.com/biscuits-and-gravy-bake/
+https://www.budgetbytes.com/gingerbread-pancakes/
+https://www.budgetbytes.com/peanut-butter-banana-smoothie/
+https://www.budgetbytes.com/super-crunchy-oil-free-granola/
+https://www.budgetbytes.com/baked-eggs-spinach-tomatoes/
+# Lunches
+https://www.budgetbytes.com/tortellini-salad/
+https://www.budgetbytes.com/mediterranean-turkey-bowls/
+https://www.budgetbytes.com/beef-and-tomato-rice-bowl/
+https://www.budgetbytes.com/cucumber-sandwiches/
+https://www.budgetbytes.com/roasted-vegetable-salad-meal-prep/
+https://www.budgetbytes.com/chicken-lime-soup/
+https://www.budgetbytes.com/honey-mustard-broccoli-salad/
+https://www.budgetbytes.com/lemon-dill-salmon-and-kale-salad/
+https://www.budgetbytes.com/easy-egg-salad/
+https://www.budgetbytes.com/menemen/
+https://www.budgetbytes.com/bibimbap/
+https://www.budgetbytes.com/creamy-chicken-and-orzo-skillet/
+https://www.budgetbytes.com/cajun-potato-salad/
+https://www.budgetbytes.com/sopa-de-letras/
+# Two sides, to check they score 0 for every slot
+https://www.budgetbytes.com/creamed-spinach/
+https://www.budgetbytes.com/easy-hollandaise-sauce/
