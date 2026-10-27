@@ -1,0 +1,43 @@
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-text);
+  font: var(--type-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+/* Type styles from the Figma type sheet. Use on any element: <p className="type-small"> */
+.type-brand { font: var(--type-brand); }
+.type-h1 { font: var(--type-h1); }
+.type-h2 { font: var(--type-h2); }
+.type-h3 { font: var(--type-h3); }
+.type-body { font: var(--type-body); }
+.type-small { font: var(--type-small); }
+.type-caption { font: var(--type-caption); }
+
+h1, h2, h3, p {
+  margin: 0;
+}
+h1 { font: var(--type-h1); color: var(--color-text-strong); }
+h2 { font: var(--type-h2); color: var(--color-text-strong); }
+h3 { font: var(--type-h3); color: var(--color-text-strong); }

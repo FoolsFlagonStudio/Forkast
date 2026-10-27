@@ -1,0 +1,83 @@
+/* AUTO-GENERATED from design/tokens.json - do not edit by hand. */
+:root {
+  --palette-background-light: #F7F2EE;
+  --palette-background-dark: #3C3C3C;
+  --palette-mauve: #C59DB0;
+  --palette-plum: #3D2433;
+  --palette-sage: #9BC59D;
+  --palette-forest: #1F3326;
+  --palette-black: #000000;
+  --palette-white: #FFFFFF;
+  --space-xxs: 2px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-xxl: 32px;
+  --space-xxxl: 48px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+  --font-brand: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-ui: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --type-brand: 600 32px/40px var(--font-brand);
+  --type-h1: 700 32px/40px var(--font-ui);
+  --type-h2: 600 28px/36px var(--font-ui);
+  --type-h3: 500 20px/28px var(--font-ui);
+  --type-body: 400 16px/24px var(--font-ui);
+  --type-small: 300 12px/18px var(--font-ui);
+  --type-caption: 700 12px/16px var(--font-ui);
+  --color-background: #F7F2EE;
+  --color-surface: #FFFFFF;
+  --color-text: #3C3C3C;
+  --color-text-strong: #1F3326;
+  --color-primary: #1F3326;
+  --color-on-primary: #F7F2EE;
+  --color-accent: #9BC59D;
+  --color-on-accent: #1F3326;
+  --color-secondary: #C59DB0;
+  --color-on-secondary: #3D2433;
+  --color-highlight: #3D2433;
+  --color-border: #D9D2CC;
+  --color-muted: #7A7470;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --color-background: #3C3C3C;
+    --color-surface: #474747;
+    --color-text: #F7F2EE;
+    --color-text-strong: #FFFFFF;
+    --color-primary: #9BC59D;
+    --color-on-primary: #1F3326;
+    --color-accent: #C59DB0;
+    --color-on-accent: #3D2433;
+    --color-secondary: #C59DB0;
+    --color-on-secondary: #3D2433;
+    --color-highlight: #C59DB0;
+    --color-border: #5A5A5A;
+    --color-muted: #B3ADA8;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --color-background: #3C3C3C;
+  --color-surface: #474747;
+  --color-text: #F7F2EE;
+  --color-text-strong: #FFFFFF;
+  --color-primary: #9BC59D;
+  --color-on-primary: #1F3326;
+  --color-accent: #C59DB0;
+  --color-on-accent: #3D2433;
+  --color-secondary: #C59DB0;
+  --color-on-secondary: #3D2433;
+  --color-highlight: #C59DB0;
+  --color-border: #5A5A5A;
+  --color-muted: #B3ADA8;
+  color-scheme: dark;
+}
