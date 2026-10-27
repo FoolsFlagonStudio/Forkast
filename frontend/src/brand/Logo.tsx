@@ -6,7 +6,8 @@ import { useTheme } from '../theme/themeContext';
 const { palette } = tokens;
 
 export type LogoVariant = 'lockup' | 'mark' | 'wordmark';
-export type LogoTone = 'color' | 'mono';
+/** color: standard brand colors. accent: sage bowl + mauve steam on any surface (auth screens, splash). mono: one color. */
+export type LogoTone = 'color' | 'accent' | 'mono';
 
 type LogoProps = {
   variant?: LogoVariant;
@@ -23,6 +24,9 @@ function colorsFor(tone: LogoTone, surface: 'light' | 'dark') {
   if (tone === 'mono') {
     const ink = surface === 'light' ? palette.black : palette.backgroundLight;
     return { steam: ink, bowl: ink, text: ink };
+  }
+  if (tone === 'accent') {
+    return { steam: palette.mauve, bowl: palette.sage, text: surface === 'light' ? palette.forest : palette.backgroundLight };
   }
   return surface === 'light'
     ? { steam: palette.mauve, bowl: palette.forest, text: palette.forest }

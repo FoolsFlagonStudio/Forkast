@@ -13,9 +13,15 @@ const typeLabels: Record<TypeVariant, string> = {
   body: 'Body - Poppins 400, 16px',
   small: 'Small - Poppins 300, 12px',
   caption: 'Caption - Poppins 700, 12px',
+  button: 'Button - Poppins 500, 12px, 1.5 tracking, caps',
+  input: 'Input - Poppins 400, 12px',
+  bodySmall: 'Body Small - Poppins 400, 12px',
+  social: 'Social button - Poppins 500, 15px',
+  fine: 'Fine print - Poppins 400, 11px',
 };
 
 const label = (name: string) => name.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase());
+const kebab = (name: string) => name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
 
 export default function StyleGuide() {
   const { preference, setPreference, mode } = useTheme();
@@ -67,7 +73,7 @@ export default function StyleGuide() {
         {(Object.keys(tokens.typography) as TypeVariant[]).map((v) => (
           <div key={v} className={styles.typeRow}>
             <p className="type-small">{typeLabels[v]}</p>
-            <p className={`type-${v}`}>Meals planned to your budget</p>
+            <p className={`type-${kebab(v)}`}>Meals planned to your budget</p>
           </div>
         ))}
       </section>

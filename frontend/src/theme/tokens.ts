@@ -16,23 +16,28 @@ export const tokens = {
     "light": {
       "background": "#F7F2EE",
       "surface": "#FFFFFF",
-      "text": "#3C3C3C",
-      "textStrong": "#1F3326",
-      "primary": "#1F3326",
-      "onPrimary": "#F7F2EE",
+      "text": "#000000",
+      "textStrong": "#000000",
+      "muted": "#8E8A87",
+      "primary": "#9BC59D",
+      "onPrimary": "#000000",
       "accent": "#9BC59D",
       "onAccent": "#1F3326",
       "secondary": "#C59DB0",
       "onSecondary": "#3D2433",
       "highlight": "#3D2433",
+      "brandSurface": "#1F3326",
+      "onBrandSurface": "#F7F2EE",
       "border": "#D9D2CC",
-      "muted": "#7A7470"
+      "divider": "#A9A5A2",
+      "danger": "#B3261E"
     },
     "dark": {
       "background": "#3C3C3C",
       "surface": "#474747",
       "text": "#F7F2EE",
       "textStrong": "#FFFFFF",
+      "muted": "#B3ADA8",
       "primary": "#9BC59D",
       "onPrimary": "#1F3326",
       "accent": "#C59DB0",
@@ -40,8 +45,11 @@ export const tokens = {
       "secondary": "#C59DB0",
       "onSecondary": "#3D2433",
       "highlight": "#C59DB0",
+      "brandSurface": "#1F3326",
+      "onBrandSurface": "#F7F2EE",
       "border": "#5A5A5A",
-      "muted": "#B3ADA8"
+      "divider": "#7A7672",
+      "danger": "#F2B8B5"
     }
   },
   "fonts": {
@@ -90,6 +98,38 @@ export const tokens = {
       "weight": 700,
       "size": 12,
       "lineHeight": 16
+    },
+    "button": {
+      "font": "ui",
+      "weight": 500,
+      "size": 12,
+      "lineHeight": 16,
+      "letterSpacing": 1.5
+    },
+    "input": {
+      "font": "ui",
+      "weight": 400,
+      "size": 12,
+      "lineHeight": 18,
+      "letterSpacing": 0.5
+    },
+    "bodySmall": {
+      "font": "ui",
+      "weight": 400,
+      "size": 12,
+      "lineHeight": 18
+    },
+    "social": {
+      "font": "ui",
+      "weight": 500,
+      "size": 15,
+      "lineHeight": 20
+    },
+    "fine": {
+      "font": "ui",
+      "weight": 400,
+      "size": 11,
+      "lineHeight": 14
     }
   },
   "spacing": {

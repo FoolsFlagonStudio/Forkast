@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
+import { AuthProvider } from '@/auth/AuthProvider';
 import { fontFiles } from '@/theme/fonts';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 import { useTheme } from '@/theme/themeContext';
@@ -10,11 +11,16 @@ import { useTheme } from '@/theme/themeContext';
 SplashScreen.preventAutoHideAsync();
 
 function RootStack() {
-  const { mode } = useTheme();
+  const { mode, colors } = useTheme();
+  const onSplash = usePathname() === '/';
   return (
     <>
-      <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
-      <Stack screenOptions={{ headerShown: false }} />
+      <StatusBar style={onSplash || mode === 'dark' ? 'light' : 'dark'} />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
+        <Stack.Screen name="index" options={{ animation: 'none' }} />
+        <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
+        <Stack.Screen name="(app)" options={{ animation: 'fade' }} />
+      </Stack>
     </>
   );
 }
@@ -31,7 +37,9 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider>
-      <RootStack />
+      <AuthProvider>
+        <RootStack />
+      </AuthProvider>
     </ThemeProvider>
   );
 }

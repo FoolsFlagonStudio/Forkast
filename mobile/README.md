@@ -2,7 +2,7 @@
 
 The Victual app for iOS and Android, built with Expo and React Native. This is the user-facing product: preferences, weekly meal plans, recipes, and grocery lists.
 
-> **Status:** scaffolded. Theme, fonts, logo, icons, app icon and splash are set up; the home screen is a temporary style guide. The splash and auth screens come next from the Figma designs.
+> **Status:** splash and the full auth flow (sign up, verify email, log in, forgot/reset password) are built and wired to the backend. After sign-in you land on a placeholder home; onboarding and the main tabs come next.
 
 ## Responsibilities
 
@@ -20,9 +20,27 @@ The app talks only to the backend API (see [../backend/README.md](../backend/REA
 | Generate and view weekly meal plans (calendar view)                                                                | `/api/meal-plans`, `/api/meal-plans/{id}/calendar`                   |
 | Grocery list with purchased checkboxes                                                                             | `/api/meal-plans/{id}/grocery-list`, `/api/grocery-list-items/{id}`  |
 
-## Auth Notes
+## Auth
 
-The backend issues short-lived JWT access tokens plus refresh tokens. Tokens should be kept in secure device storage (`expo-secure-store`), not plain async storage.
+Screens live in `src/app/(auth)/`, the session in `src/auth/AuthProvider.tsx`, and the API calls in `src/api/auth.ts`.
+
+```
+Splash ──▶ Log In ──▶ Home
+   │         │  └─ unverified? ──▶ Verify Email (fresh code sent)
+   │         └─ Forgot Password ──▶ Reset Password ──▶ Home
+   └──▶ Sign Up ──▶ Verify Email ──▶ Home
+                       └─ Change Email ──▶ back to Sign Up, prefilled
+```
+
+- **Codes, not links.** The backend emails a 6-digit code for verification and password resets, so Verify Email has a code entry (it submits on its own, and supports paste and one-time-code autofill) and Reset Password has a code field.
+- **Tokens.** The refresh token is stored with `expo-secure-store` (Keychain / Keystore); the short-lived access token stays in memory. On launch the splash restores the session with a refresh. `authedRequest()` attaches the access token and retries once after a refresh on a 401. Refresh tokens rotate, so concurrent refreshes share one call.
+- **Route guards.** `(auth)` redirects to Home when signed in; `(app)` redirects to Log In when signed out.
+- **Social sign-in** (Google/Apple) is built but switched off in `src/config/features.ts` until the backend supports it.
+- **Change Email** goes back to Sign Up with the details filled in, because the backend has no way for an unverified account to change its address yet.
+
+### Pointing the app at the backend
+
+Copy `.env.example` to `.env.local` and set `EXPO_PUBLIC_API_URL`. On a real phone, `localhost` means the phone, so use your computer's LAN IP (Windows: `ipconfig`, "IPv4 Address") with the backend running, e.g. `http://192.168.1.42:8080`. Restart `npx expo start` after changing it.
 
 ## Cost Notes
 
@@ -51,7 +69,7 @@ npx expo start         # scan the QR code with Expo Go (iPhone camera / Android 
 npm run typecheck
 ```
 
-Your phone and computer need to be on the same Wi-Fi. If they can't see each other, use `npx expo start --tunnel`.
+Set the backend URL first (see "Pointing the app at the backend" above). Your phone and computer need to be on the same Wi-Fi. If they can't see each other, use `npx expo start --tunnel`.
 
 Use `npx expo install <package>` instead of `npm install` for anything with native code, so you get the version that matches the Expo SDK.
 
@@ -63,7 +81,8 @@ Use `npx expo install <package>` instead of `npm install` for anything with nati
 - **`useTheme()`** (`src/theme/themeContext.ts`) returns `colors` for the current mode plus `spacing`, `radius` and `palette`, and `setPreference('light' | 'dark' | 'system')`.
 - **`<Text variant="h1">`** (`src/components/Text.tsx`) applies the Figma type styles with the right font file and theme color. Use it instead of React Native's `Text`.
 - **Fonts**: React Native needs one font per weight. `src/theme/fonts.ts` loads them and maps `(family, weight)` to the loaded name. To use a new weight, add it there.
-- **Splash**: the app holds the native splash until fonts load, so nothing flashes in a fallback font.
+- **Splash**: the app holds the native splash until fonts load, so nothing flashes in a fallback font. The native splash image is built to the same measurements as the Splash screen, so the hand-off doesn't jump.
+- **Sizes**: designs are 402x874 Figma frames (iPhone points), so Figma px values are used as-is.
 
 ```tsx
 const { colors, spacing } = useTheme();
@@ -76,4 +95,4 @@ const { colors, spacing } = useTheme();
 
 ## App Icon and Splash
 
-Generated from the logo in `../design/brand/` and stored in `assets/images/`: `icon.png` (iOS and store), the Android adaptive icon layers (forest background, mark foreground, monochrome for themed icons), `splash-icon.png` (shown on a forest background), and `favicon.png`.
+Generated from the logo in `../design/brand/` and stored in `assets/images/`: `icon.png` (iOS and store), the Android adaptive icon layers (forest background, mark foreground, monochrome for themed icons), `splash-icon.png` (the stacked mark + wordmark from the Splash frame, from `design/brand/splash-stacked.svg`), and `favicon.png`.

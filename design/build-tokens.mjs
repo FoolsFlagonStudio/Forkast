@@ -61,6 +61,7 @@ base['--font-brand'] = fontStack('brand');
 base['--font-ui'] = fontStack('ui');
 for (const [name, t] of Object.entries(src.typography)) {
   base[`--type-${name}`] = `${t.weight} ${t.size}px/${t.lineHeight}px var(--font-${t.font})`;
+  base[`--tracking-${kebab(name)}`] = `${t.letterSpacing ?? 0}px`;
 }
 const modeVars = (mode) =>
   Object.fromEntries(Object.entries(colors[mode]).map(([k, v]) => [`--color-${kebab(k)}`, v]));

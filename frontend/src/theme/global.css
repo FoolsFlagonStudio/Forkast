@@ -34,6 +34,11 @@ svg {
 .type-body { font: var(--type-body); }
 .type-small { font: var(--type-small); }
 .type-caption { font: var(--type-caption); }
+.type-button { font: var(--type-button); letter-spacing: var(--tracking-button); text-transform: uppercase; }
+.type-input { font: var(--type-input); letter-spacing: var(--tracking-input); }
+.type-body-small { font: var(--type-body-small); }
+.type-social { font: var(--type-social); }
+.type-fine { font: var(--type-fine); }
 
 h1, h2, h3, p {
   margin: 0;

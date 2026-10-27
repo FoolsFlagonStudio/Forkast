@@ -64,6 +64,7 @@ recipe-scrapers  ── POST ──▶  parse, match, classify   ◀── REST 
 
 Ideas deliberately left out of v1:
 
+- **Sign in with Google and Apple.** First stretch goal. The buttons are already built in the app behind `features.socialSignIn`; the backend needs endpoints that verify Google/Apple identity tokens and issue Victual tokens.
 - **Per-slot day selection.** Let a meal slot cover only some days (e.g. lunches on weekdays only). In v1 every included slot covers all 7 days of the plan.
 - **Push notifications.** v1 generates each user's plan automatically before their plan start day; a push notification when it's ready comes later.
 - **Regional prices.** v1 prices everything from one Kroger store; letting users pick a store or ZIP code comes later.

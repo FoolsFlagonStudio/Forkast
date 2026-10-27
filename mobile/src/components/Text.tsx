@@ -26,6 +26,7 @@ export function Text({ variant = 'body', color, style, ...rest }: TextProps) {
           fontFamily: fontFamily(t.font, t.weight),
           fontSize: t.size,
           lineHeight: t.lineHeight,
+          letterSpacing: 'letterSpacing' in t ? t.letterSpacing : undefined,
           color: colors[role],
         },
         style,
