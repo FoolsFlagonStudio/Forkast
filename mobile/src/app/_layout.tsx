@@ -20,6 +20,7 @@ function RootStack() {
         <Stack.Screen name="index" options={{ animation: 'none' }} />
         <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
         <Stack.Screen name="(app)" options={{ animation: 'fade' }} />
+        <Stack.Screen name="onboarding" options={{ animation: 'fade', gestureEnabled: false }} />
       </Stack>
     </>
   );

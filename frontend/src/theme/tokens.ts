@@ -30,7 +30,14 @@ export const tokens = {
       "onBrandSurface": "#F7F2EE",
       "border": "#D9D2CC",
       "divider": "#A9A5A2",
-      "danger": "#B3261E"
+      "danger": "#B3261E",
+      "heading": "#444444",
+      "subtle": "#5A5A59",
+      "primaryDisabled": "#CDD4CD",
+      "onPrimaryDisabled": "#F7F2EE",
+      "selected": "#1F3326",
+      "onSelected": "#F7F2EE",
+      "progressLine": "#C59DB0"
     },
     "dark": {
       "background": "#3C3C3C",
@@ -49,7 +56,14 @@ export const tokens = {
       "onBrandSurface": "#F7F2EE",
       "border": "#5A5A5A",
       "divider": "#7A7672",
-      "danger": "#F2B8B5"
+      "danger": "#F2B8B5",
+      "heading": "#F7F2EE",
+      "subtle": "#C9C3BE",
+      "primaryDisabled": "#5E655E",
+      "onPrimaryDisabled": "#A3AAA3",
+      "selected": "#F7F2EE",
+      "onSelected": "#1F3326",
+      "progressLine": "#C59DB0"
     }
   },
   "fonts": {
@@ -130,6 +144,50 @@ export const tokens = {
       "weight": 400,
       "size": 11,
       "lineHeight": 14
+    },
+    "display": {
+      "font": "ui",
+      "weight": 600,
+      "size": 140,
+      "lineHeight": 150
+    },
+    "title": {
+      "font": "ui",
+      "weight": 400,
+      "size": 32,
+      "lineHeight": 38
+    },
+    "lead": {
+      "font": "ui",
+      "weight": 300,
+      "size": 17,
+      "lineHeight": 22
+    },
+    "option": {
+      "font": "ui",
+      "weight": 400,
+      "size": 16,
+      "lineHeight": 22
+    },
+    "label": {
+      "font": "ui",
+      "weight": 400,
+      "size": 14,
+      "lineHeight": 20
+    },
+    "field": {
+      "font": "ui",
+      "weight": 400,
+      "size": 18,
+      "lineHeight": 24,
+      "letterSpacing": 0.5
+    },
+    "buttonLarge": {
+      "font": "ui",
+      "weight": 500,
+      "size": 14,
+      "lineHeight": 18,
+      "letterSpacing": 2
     }
   },
   "spacing": {

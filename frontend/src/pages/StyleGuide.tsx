@@ -18,6 +18,13 @@ const typeLabels: Record<TypeVariant, string> = {
   bodySmall: 'Body Small - Poppins 400, 12px',
   social: 'Social button - Poppins 500, 15px',
   fine: 'Fine print - Poppins 400, 11px',
+  display: 'Display - Poppins 600, 140px',
+  title: 'Onboarding title - Poppins 400, 32px',
+  lead: 'Lead - Poppins 300, 17px',
+  option: 'Option - Poppins 400, 16px',
+  label: 'Label - Poppins 400, 14px',
+  field: 'Field - Poppins 400, 18px',
+  buttonLarge: 'Large button - Poppins 500, 14px, 2 tracking, caps',
 };
 
 const label = (name: string) => name.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase());

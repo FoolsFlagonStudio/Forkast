@@ -11,6 +11,8 @@ type AuthContextValue = {
   /** Store a session from login / verify / reset responses. */
   signIn: (res: AuthResponse) => Promise<void>;
   signOut: () => Promise<void>;
+  /** Patch the cached user, e.g. onboardingCompleted after preferences are saved. */
+  updateUser: (patch: Partial<User>) => void;
   /** Authenticated request: adds the access token and retries once after a refresh on 401. */
   authedRequest: <T>(path: string, opts?: Omit<Parameters<typeof request>[1], 'accessToken'>) => Promise<T>;
 };
@@ -68,6 +70,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await clearSession();
   }, [clearSession]);
 
+  const updateUser = useCallback((patch: Partial<User>) => {
+    setUser((u) => (u ? { ...u, ...patch } : u));
+  }, []);
+
   const authedRequest = useCallback<AuthContextValue['authedRequest']>(
     async (path, opts) => {
       try {
@@ -81,8 +87,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ status, user, signIn, signOut, authedRequest }),
-    [status, user, signIn, signOut, authedRequest],
+    () => ({ status, user, signIn, signOut, updateUser, authedRequest }),
+    [status, user, signIn, signOut, updateUser, authedRequest],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

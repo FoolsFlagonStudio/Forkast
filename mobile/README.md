@@ -2,7 +2,7 @@
 
 The Victual app for iOS and Android, built with Expo and React Native. This is the user-facing product: preferences, weekly meal plans, recipes, and grocery lists.
 
-> **Status:** splash and the full auth flow (sign up, verify email, log in, forgot/reset password) are built and wired to the backend. After sign-in you land on a placeholder home; onboarding and the main tabs come next.
+> **Status:** splash, the full auth flow and onboarding are built and wired to the backend. After onboarding you land on a placeholder home; the main tabs come next.
 
 ## Responsibilities
 
@@ -28,7 +28,7 @@ Screens live in `src/app/(auth)/`, the session in `src/auth/AuthProvider.tsx`, a
 Splash ──▶ Log In ──▶ Home
    │         │  └─ unverified? ──▶ Verify Email (fresh code sent)
    │         └─ Forgot Password ──▶ Reset Password ──▶ Home
-   └──▶ Sign Up ──▶ Verify Email ──▶ Home
+   └──▶ Sign Up ──▶ Verify Email ──▶ Onboarding ──▶ Home
                        └─ Change Email ──▶ back to Sign Up, prefilled
 ```
 
@@ -37,6 +37,29 @@ Splash ──▶ Log In ──▶ Home
 - **Route guards.** `(auth)` redirects to Home when signed in; `(app)` redirects to Log In when signed out.
 - **Social sign-in** (Google/Apple) is built but switched off in `src/config/features.ts` until the backend supports it.
 - **Change Email** goes back to Sign Up with the details filled in, because the backend has no way for an unverified account to change its address yet.
+
+## Onboarding
+
+New accounts (no saved preferences, `user.onboardingCompleted` false) are routed to `/onboarding` from anywhere in the app. It's one screen with ten steps so answers survive going back and forth: `src/onboarding/OnboardingFlow.tsx` runs it, `steps.tsx` has one component per step, and `model.ts` holds the answers, the option lists and the mapping to `PreferencesRequest`.
+
+1. Intro
+2. Weekly budget (presets or type your own; Next disabled at $0)
+3. Household size (1-20)
+4. Meals to cover (breakfast, lunch, dinner)
+5. Recipes per week for each meal (1-7; every meal covers all 7 days, so fewer recipes means leftovers)
+6. Week start day - not in the Figma; the backend needs `planStartDay`
+7. Diets
+8. Allergies
+9. Macro targets (optional, per meal)
+10. Review (tap a row to jump back and edit), then "Building your plan" with the steaming bowl animation
+
+How answers map to the backend:
+
+- Diets and allergies become dietary label ids (`vegan`, `high-protein`, `nut-free`, `dairy-free`...). Low Calorie and Low Carb aren't labels, so they pre-fill the per-meal calorie (500) and carb (30 g) targets instead, which recipe ranking uses.
+- Macros are per meal, matching `RecipeFitEvaluator`. Fiber from the Figma is left out because the backend doesn't store it.
+- `repeatAvoidanceDays` is sent as the backend default (14).
+- Location isn't asked: pricing will be averaged instead of per store.
+- "Building your plan" saves preferences (falling back to PUT if they already exist) and holds for ~2.6 s. Once the meal plan generator exists, its call goes where the TODO is in `OnboardingFlow.tsx`.
 
 ### Pointing the app at the backend
 
