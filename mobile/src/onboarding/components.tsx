@@ -71,6 +71,7 @@ export function OptionCard({ label, Icon: Glyph, selected, onPress }: { label: s
       onPress={onPress}
       accessibilityRole="checkbox"
       accessibilityState={{ checked: selected }}
+      aria-checked={selected}
       accessibilityLabel={label}
       style={({ pressed }) => [
         styles.card,
@@ -96,6 +97,7 @@ export function Chip({ label, selected, onPress, accessibilityLabel }: { label: 
       onPress={onPress}
       accessibilityRole="radio"
       accessibilityState={{ selected }}
+      aria-checked={selected}
       accessibilityLabel={accessibilityLabel ?? label}
       style={({ pressed }) => [
         styles.chip,

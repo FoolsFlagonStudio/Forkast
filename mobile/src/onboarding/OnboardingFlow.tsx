@@ -9,6 +9,7 @@ import { Button } from '@/components/Button';
 import { Text } from '@/components/Text';
 import { useTheme } from '@/theme/themeContext';
 import { BuildingPlan } from './BuildingPlan';
+import { onboardingDraft } from './draft';
 import { ProgressDots } from './components';
 import { STEPS, canContinue, initialAnswers, toPreferencesRequest, type Answers, type Step } from './model';
 import { Allergies, Budget, Diet, Household, Intro, Macros, Meals, PerWeek, Review, WeekStart, type StepProps } from './steps';
@@ -17,7 +18,8 @@ const MIN_BUILDING_MS = 2600;
 
 export function OnboardingFlow() {
   const { colors } = useTheme();
-  const { authedRequest, updateUser } = useAuth();
+  const { authedRequest, updateUser, user } = useAuth();
+  const userId = user?.id ?? '';
   const insets = useSafeAreaInsets();
 
   const [index, setIndex] = useState(0);
@@ -26,7 +28,30 @@ export function OnboardingFlow() {
   const [building, setBuilding] = useState(false);
   const [buildError, setBuildError] = useState<string | null>(null);
   const [areaHeight, setAreaHeight] = useState(0);
+  const [restored, setRestored] = useState(false);
   const step = STEPS[index];
+
+  // Resume a saved draft (app closed mid-onboarding), then keep it up to date.
+  useEffect(() => {
+    let cancelled = false;
+    onboardingDraft.load(userId).then((draft) => {
+      if (cancelled) return;
+      if (draft) {
+        setAnswers(draft.answers);
+        setIndex(draft.index);
+      }
+      setRestored(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  useEffect(() => {
+    if (!restored || building) return;
+    const t = setTimeout(() => onboardingDraft.save(userId, { index, answers }), 300);
+    return () => clearTimeout(t);
+  }, [restored, building, userId, index, answers]);
 
   // Dietary label ids are needed to save diets/allergies; fetch early.
   useEffect(() => {
@@ -82,12 +107,16 @@ export function OnboardingFlow() {
       }
       // TODO: generate the first meal plan here once the backend's generator exists.
       await new Promise((r) => setTimeout(r, Math.max(0, MIN_BUILDING_MS - (Date.now() - started))));
+      await onboardingDraft.clear(userId);
       updateUser({ onboardingCompleted: true });
       router.replace('/home');
     } catch (e) {
       setBuildError(e instanceof ApiError ? e.message : "We couldn't save your plan settings. Check your connection and try again.");
     }
   }
+
+  // A brief blank while the draft loads beats flashing step 1 and then jumping.
+  if (!restored) return <View style={{ flex: 1, backgroundColor: colors.background }} />;
 
   if (building) {
     return <BuildingPlan error={buildError} onRetry={finish} onBack={() => setBuilding(false)} />;

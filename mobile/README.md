@@ -59,6 +59,7 @@ How answers map to the backend:
 - Macros are per meal, matching `RecipeFitEvaluator`. Fiber from the Figma is left out because the backend doesn't store it.
 - `repeatAvoidanceDays` is sent as the backend default (14).
 - Location isn't asked: pricing will be averaged instead of per store.
+- **Resume:** progress (current step + answers) is saved on the device with AsyncStorage as you go, one draft per account, and restored if the app is closed mid-way. The draft is cleared once preferences are saved. Unreadable, out-of-range or older-format drafts fall back to step 1 (bump `VERSION` in `src/onboarding/draft.ts` when the answers shape changes).
 - "Building your plan" saves preferences (falling back to PUT if they already exist) and holds for ~2.6 s. Once the meal plan generator exists, its call goes where the TODO is in `OnboardingFlow.tsx`.
 
 ### Pointing the app at the backend
