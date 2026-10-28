@@ -3,6 +3,7 @@ import { Animated, BackHandler, Easing, KeyboardAvoidingView, Platform, Pressabl
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ApiError } from '@/api/client';
+import { mealPlansApi } from '@/api/mealPlans';
 import { preferencesApi, type DietaryLabel } from '@/api/preferences';
 import { useAuth } from '@/auth/AuthProvider';
 import { Button } from '@/components/Button';
@@ -105,7 +106,8 @@ export function OnboardingFlow() {
         if (e instanceof ApiError && e.status === 409) await preferencesApi.replace(authedRequest, body);
         else throw e;
       }
-      // TODO: generate the first meal plan here once the backend's generator exists.
+      // Build the first week right away. If it fails, Home shows "Plan my week" instead.
+      await mealPlansApi.generate(authedRequest).catch(() => null);
       await new Promise((r) => setTimeout(r, Math.max(0, MIN_BUILDING_MS - (Date.now() - started))));
       await onboardingDraft.clear(userId);
       updateUser({ onboardingCompleted: true });

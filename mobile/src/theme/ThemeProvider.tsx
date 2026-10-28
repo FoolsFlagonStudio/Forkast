@@ -1,14 +1,28 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DarkTheme, DefaultTheme, ThemeProvider as NavThemeProvider } from 'expo-router';
 import { tokens } from './tokens';
 import { fontFamily } from './fonts';
 import { ThemeContext, type Theme, type ThemePreference } from './themeContext';
 
-// TODO: persist `preference` once the Settings screen exists (Light / Dark / System).
+const KEY = 'victual.theme';
+
+// Light / Dark / System, chosen on the Profile tab and remembered on the device.
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const system = useColorScheme();
-  const [preference, setPreference] = useState<ThemePreference>('system');
+  const [preference, setPreferenceState] = useState<ThemePreference>('system');
+
+  useEffect(() => {
+    AsyncStorage.getItem(KEY)
+      .then((v) => (v === 'light' || v === 'dark' ? setPreferenceState(v) : null))
+      .catch(() => {});
+  }, []);
+
+  const setPreference = useCallback((p: ThemePreference) => {
+    setPreferenceState(p);
+    AsyncStorage.setItem(KEY, p).catch(() => {});
+  }, []);
   const mode = preference === 'system' ? (system === 'dark' ? 'dark' : 'light') : preference;
 
   const theme = useMemo<Theme>(
@@ -21,7 +35,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       preference,
       setPreference,
     }),
-    [mode, preference],
+    [mode, preference, setPreference],
   );
 
   // Keeps React Navigation's headers, tab bar and screen backgrounds on-palette.

@@ -1,6 +1,7 @@
 // One component per onboarding step. Each gets the answers and a setter.
 import { useRef } from 'react';
-import { Pressable, StyleSheet, TextInput, View, type TextInputInstance } from 'react-native';
+import { Pressable, StyleSheet, Switch, TextInput, View, type TextInputInstance } from 'react-native';
+import { dayBefore } from '@/lib/dates';
 import { Text } from '@/components/Text';
 import { Button } from '@/components/Button';
 import { Icon } from '@/theme/icons';
@@ -173,15 +174,59 @@ export function PerWeek({ answers, update }: StepProps) {
 }
 
 export function WeekStart({ answers, update }: StepProps) {
+  const { colors } = useTheme();
   return (
     <View>
       <StepTitle>When should your{'\n'}week start?</StepTitle>
-      <Lead style={{ marginTop: 14 }}>Your new plan and grocery list will be ready the day before.</Lead>
-      <View style={[styles.chips, { flexWrap: 'wrap', marginTop: 36, rowGap: 16 }]} accessibilityRole="radiogroup">
+      <Lead style={{ marginTop: 14 }}>Each plan runs for 7 days from this day.</Lead>
+      <View style={[styles.chips, styles.dayChips]} accessibilityRole="radiogroup">
         {DAYS.map((d) => (
-          <Chip key={d.day} label={d.short} accessibilityLabel={d.long} selected={answers.weekStart === d.day} onPress={() => update({ weekStart: d.day })} />
+          <Chip
+            key={d.day}
+            label={d.short}
+            accessibilityLabel={d.long}
+            selected={answers.weekStart === d.day}
+            onPress={() =>
+              // The auto-plan day follows the start day (the day before) until the user picks one.
+              update((a) => ({ weekStart: d.day, ...(!a.autoPlanDayTouched && { autoPlanDay: dayBefore(d.day) }) }))
+            }
+          />
         ))}
       </View>
+
+      <View style={[styles.autoRow, { borderTopColor: colors.divider }]}>
+        <View style={{ flex: 1 }}>
+          <Text variant="option" color="heading">
+            Plan my week automatically
+          </Text>
+          <Text variant="label" color="subtle">
+            Gives you time to review and swap meals before you shop.
+          </Text>
+        </View>
+        <Switch
+          value={answers.autoPlan}
+          onValueChange={(v) => update({ autoPlan: v })}
+          trackColor={{ true: colors.selected, false: colors.primaryDisabled }}
+          thumbColor={colors.background}
+          accessibilityLabel="Plan my week automatically"
+        />
+      </View>
+      {answers.autoPlan && (
+        <>
+          <Lead style={{ marginTop: 18 }}>Build next week's plan every</Lead>
+          <View style={[styles.chips, styles.dayChips, { marginTop: 14 }]} accessibilityRole="radiogroup">
+            {DAYS.map((d) => (
+              <Chip
+                key={d.day}
+                label={d.short}
+                accessibilityLabel={`Plan on ${d.long}`}
+                selected={answers.autoPlanDay === d.day}
+                onPress={() => update({ autoPlanDay: d.day, autoPlanDayTouched: true })}
+              />
+            ))}
+          </View>
+        </>
+      )}
     </View>
   );
 }
@@ -284,7 +329,12 @@ export function Review({ answers, onEdit }: { answers: Answers; onEdit: (step: S
     { step: 'budget', Glyph: Icon.costPerServing, value: `$${answers.budget} a week`, label: 'Your budget' },
     { step: 'household', Glyph: Icon.profile, value: `${answers.household} ${answers.household === 1 ? 'person' : 'people'}`, label: 'Servings' },
     { step: 'perWeek', Glyph: Icon.cookMode, value: meals, label: "Recipes we'll give you each week" },
-    { step: 'weekStart', Glyph: Icon.plan, value: `Starts ${day}`, label: 'Your week' },
+    {
+      step: 'weekStart',
+      Glyph: Icon.plan,
+      value: `Starts ${day}`,
+      label: answers.autoPlan ? `Auto-plans every ${DAYS.find((d) => d.day === answers.autoPlanDay)!.long}` : 'You plan each week yourself',
+    },
     { step: 'diet', Glyph: Icon.calories, value: diets.length ? diets.join(', ') : 'No specific diet', label: 'Your diet' },
     { step: 'allergies', Glyph: Icon.nutAllergy, value: allergies.length ? allergies.join(', ') : 'None', label: 'Allergies' },
     { step: 'macros', Glyph: Icon.vegetarian, value: macros.length ? macros.join(', ') : 'No macros provided', label: 'Macro targets, per meal' },
@@ -331,6 +381,8 @@ const styles = StyleSheet.create({
   bigNumber: { textAlign: 'center', maxWidth: 320 },
   hiddenInput: { position: 'absolute', width: 1, height: 1, opacity: 0 },
   chips: { flexDirection: 'row', justifyContent: 'center', gap: 20, marginTop: 30 },
+  dayChips: { flexWrap: 'wrap', marginTop: 28, rowGap: 14, columnGap: 14 },
+  autoRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 30, paddingTop: 20, borderTopWidth: StyleSheet.hairlineWidth },
   stepperRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 20, marginBottom: 12 },
   cards: { gap: 17, marginTop: 30 },
   inlineStepper: { flexDirection: 'row', alignItems: 'center', gap: 14 },

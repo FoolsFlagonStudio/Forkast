@@ -2,7 +2,27 @@
 
 The Victual app for iOS and Android, built with Expo and React Native. This is the user-facing product: preferences, weekly meal plans, recipes, and grocery lists.
 
-> **Status:** splash, the full auth flow and onboarding are built and wired to the backend. After onboarding you land on a placeholder home; the main tabs come next.
+> **Status:** every designed screen is built: splash, auth, onboarding, and the main app (Home, Plan, Groceries, Recipes, Profile, recipe detail, cook mode, budget, settings). Auth, preferences, recipes and favorites use the live backend. Meal plans and grocery lists are simulated on the device until the backend's generator exists (see [docs/meal-plan-api.md](docs/meal-plan-api.md)).
+
+## Screens
+
+| Tab / screen | What it does |
+| --- | --- |
+| Home | This week's grocery total vs budget (tap for Budget), today's meals, Regen / Swap / Favs. Empty week and over-budget states. |
+| Plan | This week by day, or History week by week |
+| Groceries | This week's list by aisle; check items off |
+| Recipes | Search, diet filters, collections (under $3, new, quick, meal prep, protein), favorites, infinite scroll |
+| Profile | Plan settings (edited with the onboarding screens), appearance, account, support, log out, delete account |
+| Recipe detail | Macros, servings scaling, ingredients checklist, directions, nutrition, source link |
+| Cook mode | One step at a time, timers parsed from the step ("15-20 minutes" -> 15:00), screen stays on, thumbs up/down at the end |
+| Budget | Breakdown by meal, history chart, weeks under budget |
+
+**Lock / swap / regenerate.** The lock on a meal card keeps it through Regen. Swap and Favs open a sheet: pick a meal, then a suggestion (with the price difference) or a favorite. Changing a meal changes every leftover day of it too.
+
+**Data modes** (`src/config/features.ts`, set in `.env.local`):
+
+- Default: live backend, with meal plans simulated on the device (`EXPO_PUBLIC_MOCK_PLANS`, on by default). A dashed "Preview" note shows on plan screens while this is on.
+- `EXPO_PUBLIC_DEMO=1`: everything runs on built-in sample recipes with nine weeks of history, no backend needed. Any email and password logs in. Good for portfolio demos and UI work.
 
 ## Responsibilities
 
@@ -47,7 +67,7 @@ New accounts (no saved preferences, `user.onboardingCompleted` false) are routed
 3. Household size (1-20)
 4. Meals to cover (breakfast, lunch, dinner)
 5. Recipes per week for each meal (1-7; every meal covers all 7 days, so fewer recipes means leftovers)
-6. Week start day - not in the Figma; the backend needs `planStartDay`
+6. Week start day and auto-planning - not in the Figma; the backend needs `planStartDay`
 7. Diets
 8. Allergies
 9. Macro targets (optional, per meal)
@@ -60,7 +80,8 @@ How answers map to the backend:
 - `repeatAvoidanceDays` is sent as the backend default (14).
 - Location isn't asked: pricing will be averaged instead of per store.
 - **Resume:** progress (current step + answers) is saved on the device with AsyncStorage as you go, one draft per account, and restored if the app is closed mid-way. The draft is cleared once preferences are saved. Unreadable, out-of-range or older-format drafts fall back to step 1 (bump `VERSION` in `src/onboarding/draft.ts` when the answers shape changes).
-- "Building your plan" saves preferences (falling back to PUT if they already exist) and holds for ~2.6 s. Once the meal plan generator exists, its call goes where the TODO is in `OnboardingFlow.tsx`.
+- "Building your plan" saves preferences (falling back to PUT if they already exist), generates the first week, and holds for ~2.6 s.
+- The week start step also sets **auto-planning**: on by default, building next week's plan the day before the week starts. Changing the start day moves the auto-plan day with it until the user picks one themselves. Both are editable later under Profile > Week and auto-planning.
 
 ### Pointing the app at the backend
 

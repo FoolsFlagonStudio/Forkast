@@ -1,6 +1,7 @@
 // Onboarding answers, the step order, and how answers map onto the backend's
 // PreferencesRequest.
-import type { DayOfWeek, DietaryLabel, MealSlot, PreferencesRequest } from '@/api/preferences';
+import type { DayOfWeek, DietaryLabel, MealSlot, PreferencesRequest, PreferencesResponse } from '@/api/preferences';
+import { dayBefore } from '@/lib/dates';
 import { Icon } from '@/theme/icons';
 
 export const STEPS = [
@@ -27,6 +28,11 @@ export type Answers = {
   meals: MealSlot[];
   perWeek: Record<MealSlot, number>;
   weekStart: DayOfWeek;
+  /** Build next week's plan automatically on autoPlanDay. */
+  autoPlan: boolean;
+  autoPlanDay: DayOfWeek;
+  /** True once the user picks an auto-plan day themselves (stops it following weekStart). */
+  autoPlanDayTouched: boolean;
   diets: DietKey[];
   allergies: AllergyKey[];
   /** Kept as text so fields can be empty. Per meal. */
@@ -39,6 +45,9 @@ export const initialAnswers: Answers = {
   meals: ['LUNCH', 'DINNER'],
   perWeek: { BREAKFAST: 3, LUNCH: 3, DINNER: 4 },
   weekStart: 'SUNDAY',
+  autoPlan: true,
+  autoPlanDay: 'SATURDAY',
+  autoPlanDayTouched: false,
   diets: [],
   allergies: [],
   macros: { calories: '', protein: '', carbs: '', fat: '' },
@@ -124,7 +133,11 @@ export function macroError(key: MacroKey, value: string): string | null {
   return null;
 }
 
-export function toPreferencesRequest(a: Answers, labels: DietaryLabel[]): PreferencesRequest {
+/**
+ * `base` keeps fields onboarding doesn't ask about (daily calories, meal prep,
+ * repeat avoidance) when editing saved preferences from Profile.
+ */
+export function toPreferencesRequest(a: Answers, labels: DietaryLabel[], base?: PreferencesResponse | null): PreferencesRequest {
   const idFor = (name?: string) => labels.find((l) => l.name === name)?.id;
   const ids = [
     ...DIETS.filter((d) => a.diets.includes(d.key)).map((d) => idFor(d.dietaryLabel)),
@@ -139,9 +152,44 @@ export function toPreferencesRequest(a: Answers, labels: DietaryLabel[]): Prefer
     proteinTargetGrams: num(a.macros.protein),
     carbsTargetGrams: num(a.macros.carbs),
     fatTargetGrams: num(a.macros.fat),
-    repeatAvoidanceDays: 14,
+    maxCaloriesPerDay: base?.maxCaloriesPerDay ?? null,
+    prefersMealPrep: base?.prefersMealPrep ?? null,
+    repeatAvoidanceDays: base?.repeatAvoidanceDays ?? 14,
     planStartDay: a.weekStart,
+    autoPlanEnabled: a.autoPlan,
+    autoPlanDay: a.autoPlanDay,
     dietaryLabelIds: [...new Set(ids)],
     mealSlots: Object.fromEntries(a.meals.map((slot) => [slot, a.perWeek[slot]])),
+  };
+}
+
+/** Saved preferences back into onboarding answers, for editing from Profile. */
+export function fromPreferences(p: PreferencesResponse): Answers {
+  const names = new Set(p.dietaryRestrictions.map((l) => l.name));
+  const str = (n: number | null | undefined) => (n == null ? '' : String(n));
+  const meals = (['BREAKFAST', 'LUNCH', 'DINNER'] as MealSlot[]).filter((s) => p.mealSlots[s]);
+  return {
+    budget: Math.round(Number(p.weeklyBudget)),
+    household: p.householdServingSize,
+    meals,
+    perWeek: {
+      BREAKFAST: p.mealSlots.BREAKFAST ?? initialAnswers.perWeek.BREAKFAST,
+      LUNCH: p.mealSlots.LUNCH ?? initialAnswers.perWeek.LUNCH,
+      DINNER: p.mealSlots.DINNER ?? initialAnswers.perWeek.DINNER,
+    },
+    weekStart: p.planStartDay,
+    autoPlan: p.autoPlanEnabled ?? true,
+    autoPlanDay: p.autoPlanDay ?? dayBefore(p.planStartDay),
+    autoPlanDayTouched: p.autoPlanDay != null && p.autoPlanDay !== dayBefore(p.planStartDay),
+    // Low Calorie / Low Carb aren't stored as labels; they show as picked when their target is set low.
+    diets: DIETS.filter((d) =>
+      d.dietaryLabel
+        ? names.has(d.dietaryLabel)
+        : d.key === 'lowCalorie'
+          ? p.maxCaloriesPerMeal != null && p.maxCaloriesPerMeal <= 600
+          : p.carbsTargetGrams != null && p.carbsTargetGrams <= 40,
+    ).map((d) => d.key),
+    allergies: ALLERGIES.filter((x) => names.has(x.dietaryLabel)).map((x) => x.key),
+    macros: { calories: str(p.maxCaloriesPerMeal), protein: str(p.proteinTargetGrams), carbs: str(p.carbsTargetGrams), fat: str(p.fatTargetGrams) },
   };
 }
