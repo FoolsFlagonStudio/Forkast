@@ -4,7 +4,7 @@ A mobile meal planner that builds your weekly recipes and grocery list around yo
 
 Users set a weekly budget, household size, dietary restrictions, and optional calorie/macro targets. Each week Forkast generates a meal plan and an aggregated grocery list priced to fit that budget.
 
-> **Status:** early development. The backend data model, Flyway migrations, authentication, user preferences, and the recipe data pipeline are complete: a 153-ingredient catalog from USDA FoodData Central, and scraped recipes with parsed ingredients, nutrition, dietary labels and meal-prep scores. Recipe search, scaled detail and favorites are live, and every recipe has an estimated cost per serving from weekly Kroger prices. The meal plan generator is next. The mobile app has every designed screen built; it uses the live API for auth, preferences and recipes, and simulates meal plans on the device until the generator exists (contract: [mobile/docs/meal-plan-api.md](mobile/docs/meal-plan-api.md)). The marketing site is scaffolded.
+> **Status:** early development. The backend data model, Flyway migrations, authentication, user preferences, and the recipe data pipeline are complete: a 153-ingredient catalog from USDA FoodData Central, and scraped recipes with parsed ingredients, nutrition, dietary labels and meal-prep scores. Recipe search, scaled detail and favorites are live, and every recipe has an estimated cost per serving from weekly Kroger prices. The meal plan generator is next. The mobile app has every designed screen built; it uses the live API for auth, preferences and recipes, and simulates meal plans on the device until the generator exists (contract: [mobile/docs/meal-plan-api.md](mobile/docs/meal-plan-api.md)). The marketing site is built.
 
 ## How It Fits Together
 
@@ -58,7 +58,7 @@ recipe-scrapers  ── POST ──▶  parse, match, classify   ◀── REST 
 - [ ] Meal plan generator and grocery list
 - [x] Shared design system (tokens, fonts, logo, icons) for web and mobile
 - [x] Mobile app screens (auth, onboarding, home, plan, groceries, recipes, profile, cook mode, budget)
-- [ ] Marketing website
+- [x] Marketing website (landing, privacy, terms, support)
 
 ## Stretch Features
 

@@ -1,22 +1,23 @@
 import { lazy, Suspense } from 'react';
 import { Route, Routes } from 'react-router-dom';
-import Home from './pages/Home';
+import Landing from './pages/Landing';
 
-// Dev reference for checking tokens against the Figma. Lazy so it stays out of the main bundle.
-const StyleGuide = lazy(() => import('./pages/StyleGuide'));
+const Legal = lazy(() => import('./pages/Legal'));
+// Dev reference for checking tokens against the Figma. Only included in dev builds.
+const StyleGuide = import.meta.env.DEV ? lazy(() => import('./pages/StyleGuide')) : null;
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route
-        path="/styleguide"
-        element={
-          <Suspense fallback={null}>
-            <StyleGuide />
-          </Suspense>
-        }
-      />
-    </Routes>
+    <Suspense fallback={null}>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        {/* The app links to /privacy, /terms and /support; all four open the same page at their section. */}
+        {['/privacy', '/terms', '/support', '/delete-account'].map((path) => (
+          <Route key={path} path={path} element={<Legal />} />
+        ))}
+        {StyleGuide ? <Route path="/styleguide" element={<StyleGuide />} /> : null}
+        <Route path="*" element={<Landing />} />
+      </Routes>
+    </Suspense>
   );
 }

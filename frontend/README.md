@@ -2,17 +2,23 @@
 
 The marketing website: general information about the app and links to download it from the app stores.
 
-> **Status:** scaffolded. Theme, fonts, logo and icons are set up; the marketing pages come next from the Figma designs.
+> **Status:** built. The landing page and the privacy / terms / support / delete-account page are done from the Figma HTML, responsive down to 390px, with real app screenshots in the phone frames.
 
 ## Scope
 
-This is a static site. It does not call the backend or require login. Planned pages:
+This is a static site. It does not call the backend or require login.
 
-| Page           | Purpose                                                                     |
-| -------------- | --------------------------------------------------------------------------- |
-| Home           | What Victual does, key features, screenshots, App Store / Google Play links |
-| Privacy Policy | Required by the App Store and Google Play                                   |
-| Support        | Contact information and FAQ; the App Store requires a support URL           |
+| Route | Page |
+| --- | --- |
+| `/` | Landing: hero, how it works, features, budget spotlight, app screens, FAQ, CTA |
+| `/privacy`, `/terms`, `/support`, `/delete-account` | One page with all four sections, opened at the matching one. The app links here, and the stores need the privacy and support URLs |
+| `/styleguide` | Dev builds only |
+
+**Before launch**, fill in `src/content/site.ts` (store links, support email) and the bracketed bits in `src/pages/Legal.tsx` (email provider, backup retention). The privacy policy and terms are a draft written from what the app actually stores; have them reviewed. Store buttons say "Coming soon" until the links are set.
+
+**App screenshots** in `public/screens/` come from the app's demo mode (`EXPO_PUBLIC_DEMO=1`) at 390x844. Re-capture them when the app's screens change.
+
+**The support form** has no backend: it opens the visitor's email app with their message filled in.
 
 ## Tech Stack
 
@@ -24,7 +30,7 @@ This is a static site. It does not call the backend or require login. Planned pa
 | UI         | Ant Design, themed from the shared design tokens |
 | Icons      | Lucide (`lucide-react`)                          |
 | Fonts      | Poppins (UI), DM Sans (brand) via Fontsource     |
-| Hosting    | To be decided                                    |
+| Hosting    | To be decided. Any static host works; client-side routes need a fallback to `index.html` (e.g. Netlify `_redirects`, Vercel rewrites). |
 
 ## Setup
 

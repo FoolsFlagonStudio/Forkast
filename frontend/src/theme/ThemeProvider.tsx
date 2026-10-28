@@ -8,9 +8,10 @@ const STORAGE_KEY = 'victual-theme';
 function readStoredPreference(): ThemePreference {
   try {
     const v = localStorage.getItem(STORAGE_KEY);
-    return v === 'light' || v === 'dark' ? v : 'system';
+    // The marketing pages are designed light-only (dark colors are still provisional), so default to light.
+    return v === 'dark' || v === 'system' ? v : 'light';
   } catch {
-    return 'system';
+    return 'light';
   }
 }
 
@@ -44,8 +45,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       setPreference: (p) => {
         setPreferenceState(p);
         try {
-          if (p === 'system') localStorage.removeItem(STORAGE_KEY);
-          else localStorage.setItem(STORAGE_KEY, p);
+          localStorage.setItem(STORAGE_KEY, p);
         } catch {
           /* storage unavailable - preference just won't persist */
         }
