@@ -117,4 +117,21 @@ class WeekLayoutTest {
 
         assertThat(lengths(shape, MealSlot.LUNCH)).containsExactly(1, 1, 1, 1);
     }
+
+    @Test
+    void aWeekThatHasStartedIsLaidOutFromToday() {
+        // Friday: two days left, four dinners asked for
+        WeekShape shape = layout.layout(SUNDAY, Map.of(MealSlot.DINNER, 4), false, day(5));
+
+        assertThat(lengths(shape, MealSlot.DINNER)).containsExactly(1, 1);
+        assertThat(shape.runs()).allMatch(r -> !r.cookDate().isBefore(day(5)));
+        assertThat(shape.openMeals()).isZero();
+    }
+
+    @Test
+    void fromOnOrBeforeTheStartIsTheWholeWeek() {
+        WeekShape early = layout.layout(SUNDAY, Map.of(MealSlot.DINNER, 3), false, SUNDAY.minusDays(3));
+
+        assertThat(lengths(early, MealSlot.DINNER)).containsExactly(3, 2, 2);
+    }
 }

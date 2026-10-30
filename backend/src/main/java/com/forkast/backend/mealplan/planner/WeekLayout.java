@@ -30,6 +30,9 @@ import com.forkast.backend.mealplan.MealSlot;
  * extend past
  * their own freshness window, so a lunch run may be shorter than planned.
  *
+ * - A week that has already started is laid out from today on (the from
+ * overload).
+ *
  * A plain class: no database, no Spring, so every case is a unit test.
  */
 public class WeekLayout {
@@ -43,9 +46,24 @@ public class WeekLayout {
     }
 
     public WeekShape layout(LocalDate weekStart, Map<MealSlot, Integer> counts, boolean leftoversForLunch) {
+        return layout(weekStart, counts, leftoversForLunch, weekStart);
+    }
+
+    /**
+     * The same, for a week that has already started: only `from` (today) and the
+     * days after it
+     * are planned. The days before aren't laid out or counted as open; the user's
+     * counts still
+     * apply, so 4 dinners with 2 days left become 2 one-day dinners.
+     */
+    public WeekShape layout(LocalDate weekStart, Map<MealSlot, Integer> counts, boolean leftoversForLunch,
+            LocalDate from) {
         List<LocalDate> week = new ArrayList<>();
         for (int i = 0; i < MealPlan.DAYS; i++) {
-            week.add(weekStart.plusDays(i));
+            LocalDate day = weekStart.plusDays(i);
+            if (!day.isBefore(from)) {
+                week.add(day);
+            }
         }
         boolean lunchFromDinner = leftoversForLunch && counts.containsKey(MealSlot.LUNCH)
                 && counts.containsKey(MealSlot.DINNER);

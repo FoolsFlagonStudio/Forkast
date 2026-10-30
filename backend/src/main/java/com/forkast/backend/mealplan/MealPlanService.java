@@ -106,7 +106,10 @@ public class MealPlanService {
                 Math.max(1, preferences.getHouseholdServingSize()), preferences.isLeftoversForLunch(),
                 preferences.isPrefersMealPrep(), budget, preferences.getMaxCaloriesPerMeal(),
                 preferences.getRepeatAvoidanceDays(), seed, List.of());
-        GeneratedPlan generated = generator.generate(request, loaded.options());
+        // A week that has already started (planning on a Wednesday) is planned from
+        // today on
+        LocalDate today = LocalDate.now(clock.withZone(user.getZoneId()));
+        GeneratedPlan generated = generator.generate(request, loaded.options(), today);
 
         MealPlan plan = new MealPlan(user, weekStart, budget, source);
         plan.setMealPrepMode(preferences.isPrefersMealPrep());
@@ -128,6 +131,10 @@ public class MealPlanService {
         PlanSelection selection = new PlanSelection(run.slot(), run.position(), run.cookDate(), run.dates().size());
         selection.assignRecipe(recipes.get(pick.recipe().id()), pick.servings(), pick.portionMultiplier(),
                 pick.cost());
+        if (pick.side() != null) {
+            selection.assignSide(recipes.get(pick.side().recipe().id()), pick.side().portionMultiplier(),
+                    pick.side().cost());
+        }
         if (pick.locked()) {
             selection.lock();
         }

@@ -12,9 +12,11 @@ import jakarta.validation.Valid;
 public class AdminRecipeController {
 
     private final RecipeIngestService ingestService;
+    private final RecipeRescoreService rescoreService;
 
-    public AdminRecipeController(RecipeIngestService ingestService) {
+    public AdminRecipeController(RecipeIngestService ingestService, RecipeRescoreService rescoreService) {
         this.ingestService = ingestService;
+        this.rescoreService = rescoreService;
     }
 
     /**
@@ -24,5 +26,16 @@ public class AdminRecipeController {
     @PostMapping("/ingest")
     public RecipeIngestResult ingest(@Valid @RequestBody RecipeIngestBatch batch) {
         return ingestService.ingest(batch.recipes());
+    }
+
+    /**
+     * Recomputes every recipe's breakfast, lunch, dinner and side scores from its
+     * name, category
+     * and keywords. Run after changing SlotClassifier (and once after V11, which
+     * adds side scores).
+     */
+    @PostMapping("/rescore")
+    public RecipeRescoreService.Result rescore() {
+        return rescoreService.rescoreAll();
     }
 }
