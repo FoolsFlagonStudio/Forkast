@@ -30,7 +30,7 @@ export type PlannedMeal = {
   leftover: boolean;
   /** Locked meals survive regenerate. Applies to every day the recipe covers. */
   locked: boolean;
-  /** Its first day is today or earlier: it can't be swapped any more (it can still be locked). */
+  /** First cooked on an earlier day: it can't be swapped any more (it can still be locked). Today's can. */
   started: boolean;
   /** Cooked alongside the main (a slaw with roast chicken), or null. */
   side: RecipeSummary | null;
@@ -177,7 +177,7 @@ export function fromBackendPlan(p: BPlan, today = todayISO()): MealPlan {
           servings: Math.max(1, Math.round(s.servings / (mealCount.get(m.selectionId) ?? 1))),
           leftover: m.leftover,
           locked: s.locked,
-          started: s.startDate <= today,
+          started: s.startDate < today,
           side: s.side ? planRecipe(s.side) : null,
           sideChosen: !!s.sideChosen,
         },

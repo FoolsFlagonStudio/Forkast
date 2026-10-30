@@ -65,7 +65,7 @@ export function DayMeals({ meals }: { meals: PlannedMeal[] }) {
  * Regen / Swap row plus the sheets they open. `meals` are the ones on screen.
  * (A separate Favs button was dropped: the swap sheet already has a Favorites tab.)
  */
-export function PlanActions({ meals, cheaperFirst }: { meals: PlannedMeal[]; cheaperFirst?: boolean }) {
+export function PlanActions({ meals }: { meals: PlannedMeal[] }) {
   const { plan, regenerate, planBusy } = useAppData();
   const [confirm, setConfirm] = useState(false);
   const [swapping, setSwapping] = useState(false);
@@ -94,7 +94,7 @@ export function PlanActions({ meals, cheaperFirst }: { meals: PlannedMeal[]; che
           regenerate().catch(() => {});
         }}
       />
-      <SwapSheet visible={swapping} initialTab="suggestions" meals={meals} cheaperFirst={cheaperFirst} onClose={() => setSwapping(false)} />
+      <SwapSheet visible={swapping} initialTab="suggestions" meals={meals} onClose={() => setSwapping(false)} />
     </>
   );
 }
@@ -105,11 +105,23 @@ type SwapProps = {
   /** Meals to choose from. With one meal the picker is skipped. */
   meals: PlannedMeal[];
   initialTab: SwapTab;
-  cheaperFirst?: boolean;
+  /**
+   * Over budget by this much: the sheet becomes "Get back under budget", listing the
+   * week's meals priciest first, flagging the ones whose swap could fix it, and
+   * sorting replacements cheapest first.
+   */
+  overBy?: number;
 };
 
 type SwapTab = 'suggestions' | 'favorites' | 'search' | 'side';
 type Option = { recipe: RecipeSummary; costChange: number | null };
+
+/** What one meal costs across every day it covers, side included (estimate from per-serving costs). */
+export function runCost(plan: MealPlan, meal: PlannedMeal): number {
+  const days = plan.meals.filter((m) => m.selectionId === meal.selectionId);
+  const per = (meal.recipe.costPerServing ?? 0) + (meal.side?.costPerServing ?? 0);
+  return per * days.reduce((n, m) => n + m.servings, 0);
+}
 
 /** The cooked day of each recipe in `meals` (swapping a leftover swaps the meal it came from). */
 function selectionsIn(plan: MealPlan, meals: PlannedMeal[]): PlannedMeal[] {
@@ -123,7 +135,7 @@ function selectionsIn(plan: MealPlan, meals: PlannedMeal[]): PlannedMeal[] {
  * leftover day too. Meals that have started can't be swapped. With sides on (the real
  * backend), the Side tab adds, changes or removes the side cooked with the main.
  */
-export function SwapSheet({ visible, onClose, meals, initialTab, cheaperFirst }: SwapProps) {
+export function SwapSheet({ visible, onClose, meals, initialTab, overBy }: SwapProps) {
   const { colors } = useTheme();
   const { authedRequest } = useAuth();
   const { plan, swap, setSide, removeSide } = useAppData();
@@ -144,14 +156,14 @@ export function SwapSheet({ visible, onClose, meals, initialTab, cheaperFirst }:
     if (!plan) return [];
     return selectionsIn(plan, meals)
       .filter((m) => !m.started)
-      .sort((a, b) => (cheaperFirst ? (b.recipe.costPerServing ?? 0) - (a.recipe.costPerServing ?? 0) : 0));
-  }, [plan, meals, cheaperFirst]);
+      .sort((a, b) => (overBy ? runCost(plan, b) - runCost(plan, a) : 0));
+  }, [plan, meals, overBy]);
 
   useEffect(() => {
     if (!visible) return;
     setTab(initialTab);
     setQ('');
-    setMeal(choices.length === 1 ? choices[0] : null);
+    setMeal(choices.length === 1 && !overBy ? choices[0] : null);
   }, [visible, initialTab, choices]);
 
   // Keep the picked meal current after a side change (the plan object is replaced).
@@ -171,7 +183,13 @@ export function SwapSheet({ visible, onClose, meals, initialTab, cheaperFirst }:
     else if (tab === 'side') load = mealPlansApi.sideSuggestions(authedRequest, plan, meal);
     else load = mealPlansApi.suggestions(authedRequest, plan, meal);
     load
-      .then((list) => !cancelled && setOptions(list.filter((o) => o.recipe.id !== meal.recipe.id)))
+      .then((list) => {
+        if (cancelled) return;
+        const rest = list.filter((o) => o.recipe.id !== meal.recipe.id);
+        // Over budget: cheapest swaps first.
+        if (overBy && tab === 'suggestions') rest.sort((a, b) => (a.costChange ?? a.recipe.costPerServing ?? 0) - (b.costChange ?? b.recipe.costPerServing ?? 0));
+        setOptions(rest);
+      })
       .catch(() => !cancelled && setError("Couldn't load options. Try again."));
     return () => {
       cancelled = true;
@@ -191,35 +209,58 @@ export function SwapSheet({ visible, onClose, meals, initialTab, cheaperFirst }:
   };
 
   return (
-    <Sheet visible={visible} onClose={onClose} title={current ? (tab === 'side' ? `Side for ${current.recipe.name}` : `Swap ${current.recipe.name}`) : 'Which meal?'}>
+    <Sheet visible={visible} onClose={onClose} title={current ? (tab === 'side' ? `Side for ${current.recipe.name}` : `Swap ${current.recipe.name}`) : overBy ? 'Get back under budget' : 'Which meal?'}>
       {!current ? (
         <View style={{ gap: 12 }}>
+          {overBy && choices.length ? (
+            <Text variant="bodySmall" color="subtle">
+              You're {money(overBy)} over. These cost the most this week; swap one for something cheaper.
+            </Text>
+          ) : null}
           {choices.length === 0 ? (
             <Text variant="bodySmall" color="subtle">
               {plan && selectionsIn(plan, meals).length ? "These meals have started, so they can't be swapped." : 'No meals to swap here.'}
             </Text>
           ) : null}
-          {choices.map((m) => (
-            <Pressable
-              key={m.id}
-              onPress={() => setMeal(m)}
-              accessibilityRole="button"
-              style={({ pressed }) => [styles.choice, { backgroundColor: colors.surface, opacity: pressed ? 0.8 : 1 }]}
-            >
-              <View style={{ flex: 1 }}>
-                <Text variant="label" color="subtle">
-                  {dayLabel(m.dayOfWeek)} {m.slot.toLowerCase()}
+          {choices.map((m) => {
+            const cost = plan ? runCost(plan, m) : 0;
+            // Swapping this for something nearly free would cover the overage.
+            const couldFix = !!overBy && cost >= overBy;
+            return (
+              <Pressable
+                key={m.id}
+                onPress={() => setMeal(m)}
+                accessibilityRole="button"
+                accessibilityLabel={`${dayLabel(m.dayOfWeek)} ${m.slot.toLowerCase()}, ${m.recipe.name}${overBy ? `, ${money(cost)} this week` : ''}`}
+                style={({ pressed }) => [
+                  styles.choice,
+                  { backgroundColor: colors.surface, opacity: pressed ? 0.8 : 1 },
+                  couldFix && { borderWidth: 1.5, borderColor: tokens.palette.mauve },
+                ]}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text variant="label" color="subtle">
+                    {dayLabel(m.dayOfWeek)} {m.slot.toLowerCase()}
+                    {overBy && plan && plan.meals.filter((x) => x.selectionId === m.selectionId).length > 1
+                      ? ` · ${plan.meals.filter((x) => x.selectionId === m.selectionId).length} days`
+                      : ''}
+                  </Text>
+                  <Text variant="option" color="heading">
+                    {m.recipe.name}
+                    {m.side ? ` + ${m.side.name}` : ''}
+                  </Text>
+                  {couldFix ? (
+                    <Text variant="label" style={{ color: tokens.palette.plum, fontFamily: fontFamily('ui', 600) }}>
+                      A cheaper swap here could fix it
+                    </Text>
+                  ) : null}
+                </View>
+                <Text variant="label" color={overBy ? 'heading' : 'subtle'} style={overBy ? { fontFamily: fontFamily('ui', 600) } : undefined}>
+                  {overBy ? money(cost) : perServing(m.recipe)}
                 </Text>
-                <Text variant="option" color="heading">
-                  {m.recipe.name}
-                  {m.side ? ` + ${m.side.name}` : ''}
-                </Text>
-              </View>
-              <Text variant="label" color="subtle">
-                {perServing(m.recipe)}
-              </Text>
-            </Pressable>
-          ))}
+              </Pressable>
+            );
+          })}
         </View>
       ) : (
         <View>
@@ -330,6 +371,11 @@ export function SwapSheet({ visible, onClose, meals, initialTab, cheaperFirst }:
                     <Text variant="label" color="subtle">
                       {[perServing(r), macroLine(r)].filter(Boolean).join(' · ')}
                     </Text>
+                    {overBy && diff != null && -diff >= overBy ? (
+                      <Text variant="label" style={{ color: '#2F5A33', fontFamily: fontFamily('ui', 600) }}>
+                        Gets you back under budget
+                      </Text>
+                    ) : null}
                   </View>
                   {diff != null && Math.abs(diff) >= 0.01 ? (
                     <Text variant="label" style={{ fontFamily: fontFamily('ui', 600), color: diff < 0 ? '#2F5A33' : colors.subtle }}>

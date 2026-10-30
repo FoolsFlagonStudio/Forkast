@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import type { MealSlot } from '@/api/preferences';
-import { BudgetHistoryChart, SLOT_COLORS } from '@/components/app/PlanPieces';
+import { BudgetHistoryChart, SLOT_COLORS, SwapSheet } from '@/components/app/PlanPieces';
 import { BackHeader, Callout, EmptyState, Loading, PreviewBanner, Row, Screen, SectionTitle, SegmentBar } from '@/components/app/ui';
 import { Text } from '@/components/Text';
 import { useAppData } from '@/data/AppData';
@@ -23,6 +24,7 @@ export default function Budget() {
   const total = plan?.estimatedTotalCost ?? 0;
   const scale = Math.max(budget, total) || 1;
   const over = total > budget;
+  const [swapping, setSwapping] = useState(false);
 
   // Oldest to newest, last 9 weeks, current week included.
   const weeks = [...history.data]
@@ -74,8 +76,14 @@ export default function Budget() {
           </View>
           <View style={{ marginTop: 18 }}>
             <Callout tone={over ? 'warn' : 'good'}>
-              {over ? `${money(total - budget)} over budget this week. Swap a pricey meal from Home or Plan.` : `${money(budget - total)} under budget this week`}
+              {over ? `${money(total - budget)} over budget this week.` : `${money(budget - total)} under budget this week`}
             </Callout>
+            {over ? (
+              <Text variant="label" style={{ textDecorationLine: 'underline', marginTop: 10, textAlign: 'center', color: colors.selected }} accessibilityRole="button" onPress={() => setSwapping(true)}>
+                Swap a pricey meal
+              </Text>
+            ) : null}
+            <SwapSheet visible={swapping} onClose={() => setSwapping(false)} meals={plan.meals} initialTab="suggestions" overBy={over ? total - budget : undefined} />
           </View>
           {!plan.costComplete ? (
             <Text variant="fine" color="muted" style={{ marginTop: 8 }}>

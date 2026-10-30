@@ -42,9 +42,9 @@ import com.forkast.backend.user.UserRepository;
  * and regenerate. Every change recalculates the usage cost and rebuilds the
  * grocery list.
  *
- * Past days are never changed: a selection whose first day is today or earlier
- * keeps its
- * recipe (swap and suggestions refuse it with 409, regenerate leaves it). The
+ * Past days are never changed: a selection first cooked before today keeps its
+ * recipe (swap, sides and suggestions refuse it with 409). Today's can still be
+ * swapped by hand, but regenerate leaves anything from today back alone. The
  * days, servings
  * and run of each selection stay as they are; only recipes change.
  */
@@ -480,9 +480,14 @@ public class MealPlanEditService {
         return value == null ? BigDecimal.ZERO : value;
     }
 
+    /**
+     * Swaps and sides: a meal first cooked on an earlier day is fixed (its
+     * leftovers are in the fridge), but today's can still change, since it may not
+     * be cooked yet. Regenerate is stricter and leaves today alone too.
+     */
     private static void requireNotStarted(Edit edit, PlanSelection selection) {
-        if (selection.hasStarted(edit.today)) {
-            throw ApiException.conflict("That meal has already started, so it can't be changed.");
+        if (selection.getStartDate().isBefore(edit.today)) {
+            throw ApiException.conflict("That meal was first cooked on an earlier day, so it can't be changed.");
         }
     }
 

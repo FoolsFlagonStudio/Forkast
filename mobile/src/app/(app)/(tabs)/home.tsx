@@ -65,8 +65,10 @@ export default function Home() {
       )}
       {planError && plan ? <ErrorNote message={planError} /> : null}
 
-      {/* Over budget: "Swap meals?" opens the swap sheet with the priciest meals first, across the week. */}
-      {plan ? <SwapSheet visible={swapOpen} onClose={() => setSwapOpen(false)} meals={plan.meals} initialTab="suggestions" cheaperFirst={over} /> : null}
+      {/* Over budget: "Swap meals?" opens the swap sheet in budget mode: the whole week, priciest first. */}
+      {plan ? (
+        <SwapSheet visible={swapOpen} onClose={() => setSwapOpen(false)} meals={plan.meals} initialTab="suggestions" overBy={over ? plan.estimatedTotalCost - budget : undefined} />
+      ) : null}
       <View style={{ height: 8 }} />
     </Screen>
   );
