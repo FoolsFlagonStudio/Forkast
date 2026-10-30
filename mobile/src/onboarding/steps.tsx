@@ -1,12 +1,12 @@
 // One component per onboarding step. Each gets the answers and a setter.
 import { useRef } from 'react';
-import { Pressable, StyleSheet, Switch, TextInput, View, type TextInputInstance } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View, type TextInputInstance } from 'react-native';
 import { dayBefore } from '@/lib/dates';
 import { Text } from '@/components/Text';
 import { Button } from '@/components/Button';
 import { Icon } from '@/theme/icons';
 import { useTheme } from '@/theme/themeContext';
-import { Chip, FieldRow, Lead, OptionCard, StepButton, StepTitle } from './components';
+import { Chip, FieldRow, Lead, OptionCard, StepButton, StepTitle, Toggle } from './components';
 import {
   ALLERGIES,
   BUDGET_PRESETS,
@@ -60,7 +60,7 @@ export function Budget({ answers, update }: StepProps) {
         accessibilityLabel={`Weekly budget, ${answers.budget} dollars. Tap to type an amount.`}
         style={styles.bigNumberWrap}
       >
-        <Text variant="display" color="heading" numberOfLines={1} adjustsFontSizeToFit style={styles.bigNumber}>
+        <Text variant="display" color="heading" numberOfLines={1} style={[styles.bigNumber, bigNumberSize(`$${answers.budget}`)]}>
           ${answers.budget}
         </Text>
         <TextInput
@@ -203,13 +203,7 @@ export function WeekStart({ answers, update }: StepProps) {
             Gives you time to review and swap meals before you shop.
           </Text>
         </View>
-        <Switch
-          value={answers.autoPlan}
-          onValueChange={(v) => update({ autoPlan: v })}
-          trackColor={{ true: colors.selected, false: colors.primaryDisabled }}
-          thumbColor={colors.background}
-          accessibilityLabel="Plan my week automatically"
-        />
+        <Toggle value={answers.autoPlan} onValueChange={(v) => update({ autoPlan: v })} label="Plan my week automatically" />
       </View>
       {answers.autoPlan && (
         <>
@@ -370,6 +364,14 @@ export function Review({ answers, onEdit }: { answers: Answers; onEdit: (step: S
       </View>
     </View>
   );
+}
+
+// Sized by character count instead of adjustsFontSizeToFit, which on iOS kept short
+// amounts at full size (the "$" clipped at the top) and swapped in the system font.
+// Line height leaves room for the "$" stroke above the digits.
+function bigNumberSize(text: string) {
+  const fontSize = text.length <= 3 ? 112 : text.length === 4 ? 100 : 82;
+  return { fontSize, lineHeight: Math.round(fontSize * 1.3) };
 }
 
 const styles = StyleSheet.create({

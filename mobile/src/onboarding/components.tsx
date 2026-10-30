@@ -1,6 +1,6 @@
 // Building blocks for the onboarding steps, measured from the 402x874 frames.
 import { forwardRef, type ReactNode } from 'react';
-import { Pressable, StyleSheet, TextInput, View, type TextInputInstance, type TextInputProps } from 'react-native';
+import { Pressable, StyleSheet, Switch, TextInput, View, type TextInputInstance, type TextInputProps } from 'react-native';
 import { Text } from '@/components/Text';
 import { Icon } from '@/theme/icons';
 import { fontFamily } from '@/theme/fonts';
@@ -113,7 +113,7 @@ export function Chip({ label, selected, onPress, accessibilityLabel }: { label: 
 
 /** Round +/- button for the number steppers. */
 export function StepButton({ kind, onPress, disabled, label }: { kind: 'plus' | 'minus'; onPress: () => void; disabled?: boolean; label: string }) {
-  const { colors } = useTheme();
+  const { colors, mode } = useTheme();
   const Glyph = kind === 'plus' ? Icon.increase : Icon.decrease;
   return (
     <Pressable
@@ -127,8 +127,27 @@ export function StepButton({ kind, onPress, disabled, label }: { kind: 'plus' | 
         { borderColor: colors.primary, opacity: disabled ? 0.35 : pressed ? 0.7 : 1 },
       ]}
     >
-      <Glyph size={20} color={colors.onAccent} strokeWidth={2} />
+      <Glyph size={20} color={mode === 'dark' ? colors.primary : colors.onAccent} strokeWidth={2} />
     </Pressable>
+  );
+}
+
+/**
+ * On/off switch. "Selected" is cream in dark mode, which made the on state a white
+ * pill with a white thumb, so dark mode uses sage for on instead.
+ */
+export function Toggle({ value, onValueChange, label }: { value: boolean; onValueChange: (v: boolean) => void; label: string }) {
+  const { colors, mode } = useTheme();
+  const on = mode === 'dark' ? colors.primary : colors.selected;
+  return (
+    <Switch
+      value={value}
+      onValueChange={onValueChange}
+      trackColor={{ true: on, false: colors.primaryDisabled }}
+      ios_backgroundColor={colors.primaryDisabled}
+      thumbColor="#FFFFFF"
+      accessibilityLabel={label}
+    />
   );
 }
 

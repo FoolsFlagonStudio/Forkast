@@ -169,10 +169,37 @@ async function seedDemo(ctx: Ctx) {
   for (let i = 0; i <= 8; i++) {
     const week = addDays(thisWeek, -7 * i);
     const id = `plan-${week}`;
+    // This week is a full plan (the demo shows a week in progress); past weeks are complete.
     s.plans[id] = buildPlan({ id, weekStartDate: week, prefs, pool, seed: `demo-${week}`, ignoreBudget: i === 3 || i === 6 });
   }
   s.demo!.seeded = true;
+  s.historySeeded = true;
   await store.save(DEMO_NS, s);
+}
+
+/**
+ * Real accounts start with no history, so the first time a plan route is used we add
+ * the last HISTORY_WEEKS weeks (built from your preferences and real recipes) to test
+ * the past-weeks screens. Only weeks that don't have a plan yet; never this week.
+ */
+const HISTORY_WEEKS = 8;
+async function seedHistory(ctx: Ctx) {
+  const s = await store.load(ctx.ns);
+  if (s.historySeeded) return;
+  const prefs = await ctx.prefs().catch(() => null);
+  if (!prefs) return; // not onboarded yet: try again later
+  const pool = await ctx.pool();
+  if (!pool.length) return;
+  const thisWeek = weekStartFor(todayISO(), prefs.planStartDay);
+  for (let i = 1; i <= HISTORY_WEEKS; i++) {
+    const week = addDays(thisWeek, -7 * i);
+    const id = `plan-${week}`;
+    if (Object.values(s.plans).some((p) => p.weekStartDate === week)) continue;
+    // A couple of weeks go over budget so the history shows both outcomes.
+    s.plans[id] = buildPlan({ id, weekStartDate: week, prefs, pool, seed: `history-${ctx.ns}-${week}`, ignoreBudget: i === 3 || i === 6 });
+  }
+  s.historySeeded = true;
+  await store.save(ctx.ns, s);
 }
 
 // ---------- Meal plan routes (both modes) ----------
@@ -211,14 +238,14 @@ async function planRoutes(ctx: Ctx, method: string, pathname: string, params: Re
     const prefs = await ctx.prefs();
     const week = body?.weekStartDate ?? weekStartFor(todayISO(), prefs.planStartDay);
     const id = `plan-${week}`;
-    s.plans[id] = buildPlan({ id, weekStartDate: week, prefs, pool: await ctx.pool(), seed: `${id}-${Date.now()}` });
+    s.plans[id] = buildPlan({ id, weekStartDate: week, prefs, pool: await ctx.pool(), seed: `${id}-${Date.now()}`, fromDate: todayISO() });
     await save();
     return withFavorites(ctx, s.plans[id]);
   }
   if ((m = pathname.match(/^\/api\/meal-plans\/([^/]+)\/regenerate$/)) && method === 'POST') {
     const prev = find(m[1]);
     const prefs = await ctx.prefs();
-    s.plans[prev.id] = buildPlan({ id: prev.id, weekStartDate: prev.weekStartDate, prefs, pool: await ctx.pool(), seed: `${prev.id}-${Date.now()}`, previous: prev });
+    s.plans[prev.id] = buildPlan({ id: prev.id, weekStartDate: prev.weekStartDate, prefs, pool: await ctx.pool(), seed: `${prev.id}-${Date.now()}`, previous: prev, fromDate: todayISO() });
     // Checked-off groceries for ingredients that are still on the list stay checked.
     await save();
     return withFavorites(ctx, s.plans[prev.id]);
@@ -408,5 +435,7 @@ export async function mockRequest<T>(path: string, { method = 'GET', body, acces
     await seedDemo(ctx);
     return (await planRoutes(ctx, method, pathname, params, body)) as T;
   }
-  return (await planRoutes(await realCtx(accessToken), method, pathname, params, body)) as T;
+  const ctx = await realCtx(accessToken);
+  await seedHistory(ctx);
+  return (await planRoutes(ctx, method, pathname, params, body)) as T;
 }

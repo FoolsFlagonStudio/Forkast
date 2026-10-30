@@ -9,6 +9,8 @@ export type MockState = {
   plans: Record<string, MealPlan>;
   /** Grocery item id -> purchased. */
   purchased: Record<string, boolean>;
+  /** Past weeks were added for testing (see seedHistory). */
+  historySeeded?: boolean;
   demo?: {
     user: User;
     prefs: PreferencesResponse | null;
@@ -19,7 +21,8 @@ export type MockState = {
 
 const empty = (): MockState => ({ plans: {}, purchased: {} });
 const cache = new Map<string, MockState>();
-const KEY = (ns: string) => `victual.mock.v1.${ns}`;
+// v2: plans no longer cover days already over, so v1 plans (which did) are dropped.
+const KEY = (ns: string) => `victual.mock.v2.${ns}`;
 
 export async function load(ns: string): Promise<MockState> {
   const hit = cache.get(ns);

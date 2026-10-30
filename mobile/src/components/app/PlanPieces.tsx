@@ -19,7 +19,7 @@ import { ConfirmSheet, Sheet } from './Sheet';
 import { MealCard } from './MealCard';
 import { ErrorNote, tap } from './ui';
 
-/** Sage pill button (Regen / Swap / Favs). */
+/** Sage pill button (Regen / Swap). */
 export function PillButton({ label, onPress, disabled, accessibilityLabel }: { label: string; onPress: () => void; disabled?: boolean; accessibilityLabel?: string }) {
   const { colors } = useTheme();
   return (
@@ -59,11 +59,14 @@ export function DayMeals({ meals }: { meals: PlannedMeal[] }) {
   );
 }
 
-/** Regen / Swap / Favs row plus the sheets they open. `meals` are the ones on screen. */
+/**
+ * Regen / Swap row plus the sheets they open. `meals` are the ones on screen.
+ * (A separate Favs button was dropped: the swap sheet already has a Favorites tab.)
+ */
 export function PlanActions({ meals, cheaperFirst }: { meals: PlannedMeal[]; cheaperFirst?: boolean }) {
   const { plan, regenerate, planBusy } = useAppData();
   const [confirm, setConfirm] = useState(false);
-  const [swap, setSwap] = useState<null | 'suggestions' | 'favorites'>(null);
+  const [swapping, setSwapping] = useState(false);
   if (!plan) return null;
   const locked = new Set(plan.meals.filter((m) => m.locked).map((m) => m.recipe.id)).size;
 
@@ -71,8 +74,7 @@ export function PlanActions({ meals, cheaperFirst }: { meals: PlannedMeal[]; che
     <>
       <View style={styles.actions}>
         <PillButton label="Regen" accessibilityLabel="Regenerate this week" onPress={() => setConfirm(true)} disabled={planBusy} />
-        <PillButton label="Swap" accessibilityLabel="Swap a meal" onPress={() => setSwap('suggestions')} disabled={planBusy} />
-        <PillButton label="Favs" accessibilityLabel="Swap in a favorite" onPress={() => setSwap('favorites')} disabled={planBusy} />
+        <PillButton label="Swap" accessibilityLabel="Swap a meal" onPress={() => setSwapping(true)} disabled={planBusy} />
       </View>
       {planBusy ? <ActivityIndicator style={{ marginTop: 12 }} /> : null}
       <ConfirmSheet
@@ -90,7 +92,7 @@ export function PlanActions({ meals, cheaperFirst }: { meals: PlannedMeal[]; che
           regenerate().catch(() => {});
         }}
       />
-      <SwapSheet visible={!!swap} initialTab={swap ?? 'suggestions'} meals={meals} cheaperFirst={cheaperFirst} onClose={() => setSwap(null)} />
+      <SwapSheet visible={swapping} initialTab="suggestions" meals={meals} cheaperFirst={cheaperFirst} onClose={() => setSwapping(false)} />
     </>
   );
 }

@@ -3,13 +3,15 @@
 // it's live:
 // - every included slot covers all 7 days; N recipes per week split the days
 //   into N runs, cooked on the first day and eaten as leftovers after
+// - a week that has already started is only planned from today on (no meals or
+//   groceries for days that are over); regenerating mid-week keeps past days as they were
 // - locked meals keep their recipe through regenerate
 // - picks are shuffled per seed, then the priciest picks are swapped for
 //   cheaper ones until the week fits the budget
 import type { GroceryList, GroceryListItem, MealPlan, PlannedMeal, Aisle } from '@/api/mealPlans';
 import type { MealSlot, PreferencesResponse } from '@/api/preferences';
 import type { RecipeDetail, RecipeSummary } from '@/api/recipes';
-import { addDays, dayOfWeek } from '@/lib/dates';
+import { addDays, dayOfWeek, fromISO } from '@/lib/dates';
 import { amount as formatAmount } from '@/lib/format';
 
 export type PoolEntry = { recipe: RecipeSummary; slot?: MealSlot };
@@ -46,12 +48,14 @@ export function candidatesFor(slot: MealSlot, pool: PoolEntry[]): RecipeSummary[
   return matches.length ? matches : pool.map((p) => p.recipe);
 }
 
-/** Split 7 days into `n` runs, longest first: 3 -> [3, 2, 2]. */
-export function runs(n: number): number[][] {
-  const base = Math.floor(7 / n);
-  const extra = 7 % n;
+/** Split `total` days (starting at day `from`) into `n` runs, longest first: 3 -> [3, 2, 2]. */
+export function runs(n: number, total = 7, from = 0): number[][] {
+  n = Math.min(n, total);
+  if (n <= 0) return [];
+  const base = Math.floor(total / n);
+  const extra = total % n;
   const out: number[][] = [];
-  let day = 0;
+  let day = from;
   for (let i = 0; i < n; i++) {
     const len = base + (i < extra ? 1 : 0);
     out.push(Array.from({ length: len }, (_, k) => day + k));
@@ -59,6 +63,8 @@ export function runs(n: number): number[][] {
   }
   return out;
 }
+
+const daysBetween = (a: string, b: string) => Math.round((fromISO(b).getTime() - fromISO(a).getTime()) / 86_400_000);
 
 const mealCost = (r: RecipeSummary, servings: number) => (r.costPerServing ?? 0) * servings;
 
@@ -74,8 +80,13 @@ export function buildPlan(opts: {
   previous?: MealPlan;
   /** Skip budget fitting (used for sample history so some weeks run over). */
   ignoreBudget?: boolean;
+  /** Plan only from this date on (today, for a week that's already started). */
+  fromDate?: string;
 }): MealPlan {
   const { prefs, pool, weekStartDate, previous } = opts;
+  // Days of the week already over: 0 for a future week, up to 6 on its last day.
+  const firstDay = opts.fromDate ? Math.min(Math.max(daysBetween(weekStartDate, opts.fromDate), 0), 6) : 0;
+  const pastDate = addDays(weekStartDate, firstDay);
   const rand = rng(opts.seed);
   const servings = prefs.householdServingSize;
   const used = new Set<string>();
@@ -88,7 +99,8 @@ export function buildPlan(opts: {
     const candidates = opts.ignoreBudget
       ? [...candidatesFor(slot, pool)].sort((a, b) => (b.costPerServing ?? 0) - (a.costPerServing ?? 0))
       : shuffle(candidatesFor(slot, pool), rand);
-    for (const days of runs(count)) {
+    // Fewer days left than recipes asked for: one recipe per remaining day.
+    for (const days of runs(count, 7 - firstDay, firstDay)) {
       const kept = previous?.meals.find((m) => m.slot === slot && m.locked && m.date === addDays(weekStartDate, days[0]));
       const recipe = kept?.recipe ?? candidates.find((r) => !used.has(r.id)) ?? candidates[0];
       if (!recipe) continue;
@@ -124,6 +136,8 @@ export function buildPlan(opts: {
       return { id: `${opts.id}_${date}_${s.slot}`, date, dayOfWeek: dayOfWeek(date), slot: s.slot, recipe: s.recipe, servings, leftover: i > 0, locked: s.locked };
     }),
   );
+  // Regenerating mid-week: days already over stay as they were.
+  if (previous && firstDay > 0) meals.push(...previous.meals.filter((m) => m.date < pastDate));
   meals.sort((a, b) => (a.date === b.date ? SLOTS.indexOf(a.slot) - SLOTS.indexOf(b.slot) : a.date < b.date ? -1 : 1));
 
   return withTotals({
