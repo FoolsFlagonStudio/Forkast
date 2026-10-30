@@ -62,6 +62,13 @@ public class UserService {
         if (request.lastName() != null) {
             user.setLastName(request.lastName());
         }
+        if (request.timezone() != null) {
+            try {
+                user.setTimezone(request.timezone());
+            } catch (IllegalArgumentException e) {
+                throw ApiException.badRequest(e.getMessage() + ". Use an IANA name such as America/New_York.");
+            }
+        }
 
         return toResponse(user);
     }

@@ -62,7 +62,8 @@ feta cheese,0007027700006,Athenos Crumbled Traditional Feta Cheese,6 oz,UNIT,5.9
 fish sauce,0073762800100,Thai Kitchen Premium Fish Sauce,6.76 fl oz,UNIT,5.49,true
 flank steak,0021239600000,Private Selection Angus Beef Boneless Flank Steak,1 lb,WEIGHT,15.99,true
 flour tortilla,0001111005265,Kroger Soft Taco Size Flour Tortillas,10 ct / 17.5 oz,UNIT,1.99,true
-garlic,0001111081655,Kroger Parmesan Garlic Knots,8 oz,UNIT,2.49,true
+garlic,0000000004608,Garlic,1 ct,UNIT,0.89,true
+garlic,0001111081655,Kroger Parmesan Garlic Knots,8 oz,UNIT,2.49,false
 garlic powder,0001111000295,Kroger Garlic Powder,5.5 oz,UNIT,4.99,true
 ginger,0007800015216,Canada Dry Ginger Ale Soda 12 Cans,12 cans / 12 fl oz,UNIT,11.99,true
 granulated sugar,0001111088318,Kroger Pure Cane Granulated Sugar,4 lb,UNIT,3.99,true
@@ -101,8 +102,10 @@ mozzarella cheese,0001111001798,Kroger Whole Milk Shredded Mozzarella Cheese,8 o
 mushrooms,0001111091487,Kroger Sliced White Mushrooms,8 oz,UNIT,2.49,true
 mustard,0001111081088,Kroger Dijon Mustard,12 oz,UNIT,1.99,true
 nutmeg,0001111068312,Kroger Parsley Flakes,0.25 oz,UNIT,1.99,true
-olive oil,0063403930005,O Olive Oil California Aged Sherry Vinegar,10.1 fl oz,UNIT,9.49,true
-onion,0083418300705,ALEXIA Crispy Onion Rings with Panko Breading and Sea Salt,13.5 oz,UNIT,5.99,true
+olive oil,0007040400278,Pompeian Smooth Extra Virgin Olive Oil,16 fl oz,UNIT,9.49,true
+olive oil,0063403930005,O Olive Oil California Aged Sherry Vinegar,10.1 fl oz,UNIT,9.49,false
+onion,0000000004093,Onions - Yellow,1 lb,WEIGHT,1.29,true
+onion,0083418300705,ALEXIA Crispy Onion Rings with Panko Breading and Sea Salt,13.5 oz,UNIT,5.99,false
 onion powder,0005210000647,McCormick Onion Powder Shaker,2.62 oz,UNIT,3.99,true
 oregano,0001111068292,Kroger Oregano Leaves,0.5 oz,UNIT,1.99,true
 paprika,0005210000448,McCormick Paprika Shaker,2.12 oz,UNIT,3.29,true
@@ -119,7 +122,8 @@ pork chop,0029315750000,Bone-In Pork Loin Center-Cut Thick Chops,1 lb,WEIGHT,4.7
 pork tenderloin,0020335800000,Kroger Fresh Natural Pork Tenderloin,1 lb,WEIGHT,4.99,true
 potato,0001111091760,Kroger Russet Potatoes,5 lb,UNIT,3.49,true
 quinoa,0008912512014,Ancient Harvest Traditional Quinoa,14.4 oz,UNIT,5.49,true
-red pepper flakes,0001111068327,Kroger Ground Red Cayenne Pepper,1.5 oz,UNIT,4.99,true
+red pepper flakes,0001111068327,Kroger Ground Red Cayenne Pepper,1.5 oz,UNIT,4.99,false
+red pepper flakes,0001629144185,Morton & Bassett Red Chili Flakes,1.3 oz,UNIT,7.99,true
 red wine vinegar,0003915341305,Colavita Aged Red Wine Vinegar,17 fl oz,UNIT,5.99,true
 ricotta cheese,0001111048888,Kroger Whole Milk Ricotta Cheese Tub,15 oz,UNIT,2.99,true
 rolled oats,0003997803375,Bob's Red Mill Gluten Free Old Fashioned Whole Grain Rolled Oats,32 oz,UNIT,7.99,true
@@ -143,7 +147,8 @@ thyme,0000000004907,Thyme,1 ct,UNIT,1.29,false
 thyme,0007766113978,Litehouse Freeze Dried Thyme,0.52 oz,UNIT,6.29,true
 tilapia,0082994409214,Great American Seafood Tilapia Fillets,3 lb,UNIT,11.99,true
 tofu,0008569660804,Mori-Nu Silken Firm Tofu,12.3 oz,UNIT,2.69,true
-tomato,0001111091686,Kroger Grape Tomatoes,10 oz,UNIT,2.99,true
+tomato,0000000004087,Roma Tomato,1 lb,WEIGHT,1.49,true
+tomato,0001111091686,Kroger Grape Tomatoes,10 oz,UNIT,2.99,false
 tomato paste,0007079640010,Cento Tomato Paste Tube,4.56 oz,UNIT,2.99,true
 tomato sauce,0004112907712,Classico Tomato & Basil Pasta Sauce,24 oz,UNIT,3.29,true
 turmeric,0001111068337,Kroger Ground Turmeric,1.5 oz,UNIT,2.49,true
@@ -152,7 +157,9 @@ vegetable broth,0005260305410,"Pacific Foods Organic Vegetable Broth, Plant Base
 vegetable oil,0001111085703,Fry's Pure Vegetable Oil,1 gal,UNIT,10.49,true
 walnuts,0007493600011,Hammons Black American Walnuts,8 oz,UNIT,8.29,true
 white beans,0003940001870,Bush's Best Cannellini White Kidney Beans,15.5 oz,UNIT,1.49,true
-white rice,0007440176041,RiceSelect Royal Blend Texmati White Brown Wild & Red Rice,21 oz,UNIT,8.29,true
+white rice,0003520005512,Riceland Extra Long Grain White Rice,2 lb,UNIT,2.19,true
+white rice,0007440161041,RiceSelect Jasmati White Rice,32 oz,UNIT,7.29,false
+white rice,0007440176041,RiceSelect Royal Blend Texmati White Brown Wild & Red Rice,21 oz,UNIT,8.29,false
 white vinegar,0001111003113,Kroger Distilled White Vinegar,1 gal,UNIT,3.99,true
 worcestershire sauce,0001111071928,Kroger Worcestershire Sauce,15 fl oz,UNIT,1.99,true
 zucchini,0000000004067,Zucchini,1 lb,WEIGHT,1.79,true

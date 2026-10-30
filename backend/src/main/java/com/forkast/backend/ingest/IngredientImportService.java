@@ -63,6 +63,7 @@ public class IngredientImportService {
             ingredient.setCarbsGPer100g(scale(item.carbsGPer100g()));
             ingredient.setFatGPer100g(scale(item.fatGPer100g()));
             ingredient.replaceTags(item.tags());
+            ingredient.setPantryStaple(Boolean.TRUE.equals(item.pantryStaple()));
             ingredient.replacePortions(toPortions(item.portions()));
             addAliases(ingredient, item.aliases());
 

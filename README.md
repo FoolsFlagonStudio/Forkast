@@ -4,7 +4,7 @@ A mobile meal planner that builds your weekly recipes and grocery list around yo
 
 Users set a weekly budget, household size, dietary restrictions, and optional calorie/macro targets. Each week Forkast generates a meal plan and an aggregated grocery list priced to fit that budget.
 
-> **Status:** early development. The backend data model, Flyway migrations, authentication, user preferences, and the recipe data pipeline are complete: a 153-ingredient catalog from USDA FoodData Central, and scraped recipes with parsed ingredients, nutrition, dietary labels and meal-prep scores. Recipe search, scaled detail and favorites are live, and every recipe has an estimated cost per serving from weekly Kroger prices. The meal plan generator is next. The mobile app has every designed screen built; it uses the live API for auth, preferences and recipes, and simulates meal plans on the device until the generator exists (contract: [mobile/docs/meal-plan-api.md](mobile/docs/meal-plan-api.md)). The marketing site is built.
+> **Status:** early development. The backend data model, Flyway migrations, authentication, user preferences, and the recipe data pipeline are complete: a 153-ingredient catalog from USDA FoodData Central, and scraped recipes with parsed ingredients, nutrition, dietary labels, meal-prep and meal-slot scores. Recipe search, scaled detail and favorites are live, and every recipe has an estimated cost per serving from weekly Kroger prices. The meal plan generator is live: weekly plans that fit the budget and per-meal limits, a grocery list priced in whole packages, locking and swapping meals, and a job that makes each user's plan the night before their week starts. The mobile app has every designed screen built; it uses the live API for auth, preferences and recipes, and still simulates meal plans on the device until it's wired to the generator's routes. The marketing site is built.
 
 ## How It Fits Together
 
@@ -48,16 +48,17 @@ recipe-scrapers  ── POST ──▶  parse, match, classify   ◀── REST 
 
 - [x] Repository and Spring Boot setup
 - [x] Database connection (Supabase)
-- [x] Data model (16 tables)
+- [x] Data model (17 tables)
 - [x] Flyway migrations
 - [x] Auth (signup, login, JWT + refresh tokens)
 - [x] User and preferences endpoints
 - [x] Recipe data pipeline (catalog, scraper, parser, matcher, nutrition, labels, review queue)
 - [x] Recipe endpoints (search with fit flags, scaled detail, favorites)
 - [x] Pricing (Kroger + BLS prices, recipe cost per serving, weekly refresh)
-- [ ] Meal plan generator and grocery list
+- [x] Meal plan generator and grocery list (weekly job, lock and swap, pantry staples)
 - [x] Shared design system (tokens, fonts, logo, icons) for web and mobile
 - [x] Mobile app screens (auth, onboarding, home, plan, groceries, recipes, profile, cook mode, budget)
+- [ ] Mobile app wired to the meal plan and grocery routes
 - [x] Marketing website (landing, privacy, terms, support)
 
 ## Stretch Features

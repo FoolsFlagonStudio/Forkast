@@ -22,7 +22,8 @@ import com.forkast.backend.recipe.RecipeIngredient;
 import com.forkast.backend.recipe.RecipeStep;
 
 /**
- * Computes everything derived from a recipe's lines: nutrition, dietary labels
+ * Computes everything derived from a recipe's lines: nutrition, dietary labels,
+ * slot scores
  * and the
  * meal-prep score. Used on ingest, and again whenever a reviewed line changes
  * (step 10).
@@ -33,6 +34,7 @@ public class RecipeEnricher {
     private final NutritionCalculator nutritionCalculator;
     private final DietaryLabelClassifier dietaryLabelClassifier;
     private final MealPrepClassifier mealPrepClassifier;
+    private final SlotClassifier slotClassifier;
     private final DietaryLabelRepository dietaryLabelRepository;
     private final RecipeCostCalculator costCalculator;
     private final CurrentPriceService currentPriceService;
@@ -40,12 +42,14 @@ public class RecipeEnricher {
     public RecipeEnricher(NutritionCalculator nutritionCalculator,
             DietaryLabelClassifier dietaryLabelClassifier,
             MealPrepClassifier mealPrepClassifier,
+            SlotClassifier slotClassifier,
             DietaryLabelRepository dietaryLabelRepository,
             RecipeCostCalculator costCalculator,
             CurrentPriceService currentPriceService) {
         this.nutritionCalculator = nutritionCalculator;
         this.dietaryLabelClassifier = dietaryLabelClassifier;
         this.mealPrepClassifier = mealPrepClassifier;
+        this.slotClassifier = slotClassifier;
         this.dietaryLabelRepository = dietaryLabelRepository;
         this.costCalculator = costCalculator;
         this.currentPriceService = currentPriceService;
@@ -73,6 +77,9 @@ public class RecipeEnricher {
                 recipe.getSteps().stream().map(RecipeStep::getInstructionText).toList(),
                 recipe.getBaseServings(),
                 recipe.getIngredients().stream().map(RecipeEnricher::displayName).toList())));
+
+        SlotScores slots = slotClassifier.score(recipe.getName(), recipe.getCategory(), recipe.getKeywords());
+        recipe.setSlotScores(slots.breakfast(), slots.lunch(), slots.dinner());
 
         costFromCurrentPrices(recipe, lines);
     }

@@ -34,4 +34,12 @@ public class ApiException extends RuntimeException {
     public static ApiException conflict(String detail) {
         return new ApiException(HttpStatus.CONFLICT, detail);
     }
+
+    /**
+     * 422: the request is fine, but the user's data can't support it yet (no
+     * preferences, say).
+     */
+    public static ApiException unprocessable(String detail) {
+        return new ApiException(HttpStatus.valueOf(422), detail);
+    }
 }

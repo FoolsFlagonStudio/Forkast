@@ -22,7 +22,8 @@ from common import CACHE_DIR, require_env
 FDC_URL = "https://api.nal.usda.gov/fdc/v1/foods/search"
 SEED_PATH = Path(__file__).parent / "ingredients_seed.csv"
 CANDIDATES_PATH = Path(CACHE_DIR) / "fdc_candidates.csv"
-FIELDS = ["name", "query", "fdc_id", "fdc_description", "aliases", "tags"]
+FIELDS = ["name", "query", "fdc_id",
+          "fdc_description", "aliases", "tags", "pantry"]
 VALID_TAGS = {
     "MEAT", "POULTRY", "FISH", "SHELLFISH", "DAIRY", "EGG", "GLUTEN",
     "TREE_NUT", "PEANUT", "SOY", "HONEY", "GELATIN",

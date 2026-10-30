@@ -13,6 +13,7 @@ public record UserResponse(
         boolean verified,
         boolean premium,
         boolean onboardingCompleted,
+        String timezone,
         Instant createdAt) {
 
     public static UserResponse from(User user, boolean onboardingCompleted) {
@@ -24,6 +25,7 @@ public record UserResponse(
                 user.isVerified(),
                 user.isPremium(),
                 onboardingCompleted,
+                user.getTimezone(),
                 user.getCreatedAt());
     }
 }
