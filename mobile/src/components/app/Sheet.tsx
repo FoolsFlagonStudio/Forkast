@@ -1,22 +1,50 @@
-import type { ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Keyboard, Modal, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/Text';
 import { Icon } from '@/theme/icons';
 import { fontFamily } from '@/theme/fonts';
 import { useTheme } from '@/theme/themeContext';
 
-/** Bottom sheet over a dimmed backdrop. Tapping the backdrop closes it. */
+/** Height of the on-screen keyboard, 0 when it's hidden. */
+function useKeyboardHeight() {
+  const [height, setHeight] = useState(0);
+  useEffect(() => {
+    const show = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', (e) => setHeight(e.endCoordinates.height));
+    const hide = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => setHeight(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+  return height;
+}
+
+/**
+ * Bottom sheet over a dimmed backdrop. Tapping the backdrop closes it. While the
+ * keyboard is up the sheet grows to the full screen and its content sits above the
+ * keyboard, so what you type into (and its results) stay visible.
+ */
 export function Sheet({ visible, onClose, title, children }: { visible: boolean; onClose: () => void; title: string; children: ReactNode }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const keyboard = useKeyboardHeight();
+  const { height: screen } = useWindowDimensions();
+  const typing = visible && keyboard > 0;
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
       <View style={styles.wrap}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" accessibilityRole="button">
           <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.35)' }]} />
         </Pressable>
-        <View style={[styles.sheet, { backgroundColor: colors.background, paddingBottom: insets.bottom + 16 }]} accessibilityViewIsModal>
+        <View
+          style={[
+            styles.sheet,
+            { backgroundColor: colors.background, paddingBottom: typing ? keyboard + 8 : insets.bottom + 16 },
+            typing && { height: screen - insets.top - 8, maxHeight: undefined },
+          ]}
+          accessibilityViewIsModal
+        >
           <View style={styles.handle} />
           <View style={styles.head}>
             <Text variant="h3" color="selected" accessibilityRole="header" style={{ flex: 1, fontFamily: fontFamily('ui', 600) }}>
@@ -26,7 +54,14 @@ export function Sheet({ visible, onClose, title, children }: { visible: boolean;
               <Icon.close size={24} color={colors.text} />
             </Pressable>
           </View>
-          <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 8 }}>{children}</ScrollView>
+          <ScrollView
+            style={{ flexShrink: 1, flexGrow: typing ? 1 : 0 }}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 8 }}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+          >
+            {children}
+          </ScrollView>
         </View>
       </View>
     </Modal>

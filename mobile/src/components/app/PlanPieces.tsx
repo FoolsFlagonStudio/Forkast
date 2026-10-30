@@ -245,7 +245,6 @@ export function SwapSheet({ visible, onClose, meals, initialTab, cheaperFirst }:
                 placeholder="Search recipes or ingredients"
                 placeholderTextColor={colors.muted}
                 returnKeyType="search"
-                autoFocus
                 accessibilityLabel="Search recipes to swap in"
                 style={[styles.searchInput, { color: colors.text }]}
               />
