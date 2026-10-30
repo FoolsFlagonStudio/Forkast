@@ -83,7 +83,9 @@ public class MealPlanService {
         if (planRepository.existsByUserIdAndWeekStartDate(userId, start)) {
             throw ApiException.conflict("You already have a plan for the week of " + start + ".");
         }
-        MealPlan plan = build(user, preferences, start, PlanSource.MANUAL, ThreadLocalRandom.current().nextLong());
+        // A week that has already started (planning on a Wednesday) is planned from today on
+        MealPlan plan = build(user, preferences, start, PlanSource.MANUAL, ThreadLocalRandom.current().nextLong(),
+                today.isAfter(start) ? today : start);
         // The unique key on user + week backs up the check above if two requests race
         // (409 too)
         planRepository.saveAndFlush(plan);
@@ -97,6 +99,12 @@ public class MealPlanService {
      * is free.
      */
     public MealPlan build(User user, UserPreferences preferences, LocalDate weekStart, PlanSource source, long seed) {
+        return build(user, preferences, weekStart, source, seed, weekStart);
+    }
+
+    /** The same, planning only `from` on (today, for a week the user asks for mid-week). */
+    public MealPlan build(User user, UserPreferences preferences, LocalDate weekStart, PlanSource source, long seed,
+            LocalDate from) {
         RecipeOptionLoader.Loaded loaded = optionLoader.load(user.getId(), preferences, weekStart, user.getZoneId());
         BigDecimal budget = preferences.getWeeklyBudget() != null && preferences.getWeeklyBudget().signum() > 0
                 ? preferences.getWeeklyBudget()
@@ -106,10 +114,7 @@ public class MealPlanService {
                 Math.max(1, preferences.getHouseholdServingSize()), preferences.isLeftoversForLunch(),
                 preferences.isPrefersMealPrep(), budget, preferences.getMaxCaloriesPerMeal(),
                 preferences.getRepeatAvoidanceDays(), seed, List.of());
-        // A week that has already started (planning on a Wednesday) is planned from
-        // today on
-        LocalDate today = LocalDate.now(clock.withZone(user.getZoneId()));
-        GeneratedPlan generated = generator.generate(request, loaded.options(), today);
+        GeneratedPlan generated = generator.generate(request, loaded.options(), from);
 
         MealPlan plan = new MealPlan(user, weekStart, budget, source);
         plan.setMealPrepMode(preferences.isPrefersMealPrep());
