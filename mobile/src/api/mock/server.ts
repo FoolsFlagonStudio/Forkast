@@ -438,6 +438,8 @@ function searchFixtures(p: Record<string, string>, prefs: PreferencesResponse | 
     .filter((f) => !p.maxCalories || f.macros[0] <= Number(p.maxCalories))
     .filter((f) => !p.maxTime || f.prep + f.cook <= Number(p.maxTime))
     .filter((f) => !p.maxCost || f.cost <= Number(p.maxCost))
+    // Sample recipes are all mains, one slot each; "side" matches none.
+    .filter((f) => !p.meals || p.meals.split(',').includes(f.slot.toLowerCase()))
     .map((f) => ({ f, s: summaryOf(f, prefs, favs) }));
   const by: Record<string, (a: typeof list[0], b: typeof list[0]) => number> = {
     fit: (a, b) => a.s.flags.length - b.s.flags.length || b.f.mealPrep - a.f.mealPrep,

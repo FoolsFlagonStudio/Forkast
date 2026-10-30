@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import Svg, { Line, Rect } from 'react-native-svg';
 import { mealPlansApi, type MealPlan, type PlannedMeal } from '@/api/mealPlans';
 import type { RecipeSummary } from '@/api/recipes';
-import { recipesApi } from '@/api/recipes';
+import { recipesApi, type MealFilter } from '@/api/recipes';
 import { useAuth } from '@/auth/AuthProvider';
 import { Text } from '@/components/Text';
 import { useAppData } from '@/data/AppData';
@@ -178,7 +178,7 @@ export function SwapSheet({ visible, onClose, meals, initialTab, overBy }: SwapP
     if (tab === 'favorites') load = recipesApi.favorites(authedRequest, 0, 30).then((p) => p.items.map((recipe) => ({ recipe, costChange: null })));
     else if (tab === 'search')
       load = debounced
-        ? recipesApi.search(authedRequest, { q: debounced, sort: 'fit', size: 25 }).then((p) => p.items.map((recipe) => ({ recipe, costChange: null })))
+        ? recipesApi.search(authedRequest, { q: debounced, sort: 'fit', size: 25, meals: [meal.slot.toLowerCase() as MealFilter] }).then((p) => p.items.map((recipe) => ({ recipe, costChange: null })))
         : Promise.resolve([]);
     else if (tab === 'side') load = mealPlansApi.sideSuggestions(authedRequest, plan, meal);
     else load = mealPlansApi.suggestions(authedRequest, plan, meal);
@@ -349,7 +349,7 @@ export function SwapSheet({ visible, onClose, meals, initialTab, overBy }: SwapP
           ) : null}
           {tab === 'search' && options?.length ? (
             <Text variant="fine" color="subtle" style={{ marginBottom: 8 }}>
-              Any recipe works, as long as it suits {current.slot.toLowerCase()} and keeps for {run.length > 1 ? `${run.length} days` : 'the day'}.
+              {current.slot.charAt(0) + current.slot.slice(1).toLowerCase()} recipes only{run.length > 1 ? `; it has to keep for ${run.length} days` : ''}.
             </Text>
           ) : null}
           <View style={{ gap: 10 }}>

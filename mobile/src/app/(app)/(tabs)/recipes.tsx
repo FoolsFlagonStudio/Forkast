@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { recipesApi, type RecipeSearch, type RecipeSummary } from '@/api/recipes';
+import { recipesApi, type MealFilter, type RecipeSearch, type RecipeSummary } from '@/api/recipes';
 import { useAuth } from '@/auth/AuthProvider';
 import { ErrorNote, Loading, tap } from '@/components/app/ui';
 import { Text } from '@/components/Text';
@@ -24,6 +24,13 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'dairy', label: 'Dairy Free' },
 ];
 const LABEL_FOR: Partial<Record<FilterKey, string>> = { vegan: 'vegan', vegetarian: 'vegetarian', protein: 'high-protein', gluten: 'gluten-free', dairy: 'dairy-free' };
+
+const MEAL_CHIPS: { key: MealFilter; label: string }[] = [
+  { key: 'breakfast', label: 'Breakfast' },
+  { key: 'lunch', label: 'Lunch' },
+  { key: 'dinner', label: 'Dinner' },
+  { key: 'side', label: 'Sides' },
+];
 
 const COLLECTIONS: { key: string; title: string; params: RecipeSearch }[] = [
   { key: 'budget', title: 'Under $3 per Serving', params: { maxCost: 3, sort: 'cost' } },
@@ -47,6 +54,15 @@ export default function Recipes() {
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [filters, setFilters] = useState<Set<FilterKey>>(new Set());
   const [collection, setCollection] = useState<string | null>(null);
+  // Starts on the meals you plan (no breakfasts if you don't plan breakfast). Turn them all off to see everything.
+  const planned = useMemo<MealFilter[]>(
+    () => (['BREAKFAST', 'LUNCH', 'DINNER'] as const).filter((slot) => prefs?.mealSlots[slot]).map((slot) => slot.toLowerCase() as MealFilter),
+    [prefs?.mealSlots],
+  );
+  const [meals, setMeals] = useState<Set<MealFilter> | null>(null);
+  const activeMeals = meals ?? new Set(planned);
+  const mealsAreDefault = meals === null || (meals.size === planned.length && planned.every((m) => meals.has(m)));
+  const mealKey = [...activeMeals].sort().join(',');
   const [items, setItems] = useState<RecipeSummary[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -66,9 +82,10 @@ export default function Recipes() {
       q: q || undefined,
       labels,
       ...(filters.has('cal') && { maxCalories: prefs?.maxCaloriesPerMeal ?? 500 }),
+      meals: mealKey ? (mealKey.split(',') as MealFilter[]) : [],
       size: PAGE,
     };
-  }, [q, filters, collection, prefs?.maxCaloriesPerMeal]);
+  }, [q, filters, collection, prefs?.maxCaloriesPerMeal, mealKey]);
 
   const load = useCallback(
     async (page: number) => {
@@ -94,7 +111,7 @@ export default function Recipes() {
     load(0);
   }, [load]);
 
-  const filtered = favoritesOnly || q || filters.size > 0 || collection;
+  const filtered = favoritesOnly || q || filters.size > 0 || collection || !mealsAreDefault;
   const heading = favoritesOnly ? 'Your Favorites' : filtered ? `${total} Recipe${total === 1 ? '' : 's'}` : 'Filtered For You';
   // Unfavoriting from the favorites view removes it right away.
   const visible = favoritesOnly ? items.filter((r) => isFavorite(r)) : items;
@@ -138,7 +155,24 @@ export default function Recipes() {
 
       {!favoritesOnly && (
         <>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters} accessibilityLabel="Meals">
+            {MEAL_CHIPS.map((m) => (
+              <Chip
+                key={m.key}
+                label={m.label}
+                selected={activeMeals.has(m.key)}
+                onPress={() =>
+                  setMeals(() => {
+                    const next = new Set(activeMeals);
+                    if (next.has(m.key)) next.delete(m.key);
+                    else next.add(m.key);
+                    return next;
+                  })
+                }
+              />
+            ))}
+          </ScrollView>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.filters, { paddingTop: 10 }]}>
             {FILTERS.map((f) => (
               <Chip
                 key={f.key}

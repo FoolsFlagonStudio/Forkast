@@ -54,6 +54,8 @@ export type RecipeDetail = RecipeSummary & {
 
 export type Page<T> = { items: T[]; page: number; size: number; total: number };
 
+export type MealFilter = 'breakfast' | 'lunch' | 'dinner' | 'side';
+
 export type RecipeSort = 'fit' | 'time' | 'protein' | 'calories' | 'mealPrep' | 'newest' | 'cost';
 
 export type RecipeSearch = {
@@ -63,6 +65,8 @@ export type RecipeSearch = {
   maxCalories?: number;
   maxTime?: number;
   maxCost?: number;
+  /** Fits any of these: breakfast, lunch, dinner, side. */
+  meals?: MealFilter[];
   sort?: RecipeSort;
   page?: number;
   size?: number;
