@@ -33,6 +33,8 @@ export type Answers = {
   autoPlanDay: DayOfWeek;
   /** True once the user picks an auto-plan day themselves (stops it following weekStart). */
   autoPlanDayTouched: boolean;
+  /** Cook dinner for one more and eat it for the next day's lunch (needs both slots). */
+  leftoversForLunch: boolean;
   diets: DietKey[];
   allergies: AllergyKey[];
   /** Kept as text so fields can be empty. Per meal. */
@@ -48,6 +50,7 @@ export const initialAnswers: Answers = {
   autoPlan: true,
   autoPlanDay: 'SATURDAY',
   autoPlanDayTouched: false,
+  leftoversForLunch: false,
   diets: [],
   allergies: [],
   macros: { calories: '', protein: '', carbs: '', fat: '' },
@@ -154,6 +157,7 @@ export function toPreferencesRequest(a: Answers, labels: DietaryLabel[], base?: 
     fatTargetGrams: num(a.macros.fat),
     maxCaloriesPerDay: base?.maxCaloriesPerDay ?? null,
     prefersMealPrep: base?.prefersMealPrep ?? null,
+    leftoversForLunch: a.leftoversForLunch && a.meals.includes('LUNCH') && a.meals.includes('DINNER'),
     repeatAvoidanceDays: base?.repeatAvoidanceDays ?? 14,
     planStartDay: a.weekStart,
     autoPlanEnabled: a.autoPlan,
@@ -181,6 +185,7 @@ export function fromPreferences(p: PreferencesResponse): Answers {
     autoPlan: p.autoPlanEnabled ?? true,
     autoPlanDay: p.autoPlanDay ?? dayBefore(p.planStartDay),
     autoPlanDayTouched: p.autoPlanDay != null && p.autoPlanDay !== dayBefore(p.planStartDay),
+    leftoversForLunch: !!p.leftoversForLunch,
     // Low Calorie / Low Carb aren't stored as labels; they show as picked when their target is set low.
     diets: DIETS.filter((d) =>
       d.dietaryLabel

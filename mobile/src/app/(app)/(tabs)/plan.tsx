@@ -37,6 +37,7 @@ export default function Plan() {
 }
 
 function ThisWeek() {
+  const { colors } = useTheme();
   const { plan, planError, planBusy, generate, refresh, prefs } = useAppData();
   const today = todayISO();
   const days = useMemo(() => (plan ? Array.from({ length: 7 }, (_, i) => addDays(plan.weekStartDate, i)) : []), [plan]);
@@ -80,7 +81,26 @@ function ThisWeek() {
         ))}
       </ScrollView>
       <View style={{ marginTop: 30 }}>
-        {meals.length ? <DayMeals meals={meals} /> : <Text variant="bodySmall" color="subtle">Nothing planned this day.</Text>}
+        {meals.length ? <DayMeals meals={meals} /> : day < today ? <Text variant="bodySmall" color="subtle">Nothing was planned this day.</Text> : null}
+        {/* Open slots (a partial week, or fewer recipes than days): find a recipe and use Add to plan. */}
+        {plan.openMeals
+          .filter((o) => o.date === day)
+          .map((o) => (
+            <Pressable
+              key={o.slot}
+              onPress={() => router.push('/recipes')}
+              accessibilityRole="button"
+              accessibilityLabel={`Nothing planned for ${o.slot.toLowerCase()}. Find a recipe`}
+              style={[styles.open, { borderColor: colors.primary, marginTop: meals.length ? 14 : 0 }]}
+            >
+              <Text variant="label" color="subtle" style={{ flex: 1 }}>
+                No {o.slot.toLowerCase()} planned
+              </Text>
+              <Text variant="label" style={{ textDecorationLine: 'underline', color: colors.selected }}>
+                Find a recipe
+              </Text>
+            </Pressable>
+          ))}
       </View>
       <PlanActions meals={meals} />
       {planError ? <ErrorNote message={planError} /> : null}
@@ -141,6 +161,8 @@ function History() {
             favorite={isFavorite(m.recipe)}
             onPress={() => router.push({ pathname: '/recipe/[id]', params: { id: m.recipe.id, servings: String(m.servings) } })}
             onToggleFavorite={() => toggleFavorite(m.recipe)}
+            side={m.side}
+            onPressSide={() => m.side && router.push({ pathname: '/recipe/[id]', params: { id: m.side.id, servings: String(m.servings) } })}
           />
         ))}
       </View>
@@ -154,5 +176,6 @@ const styles = StyleSheet.create({
   underline: { textDecorationLine: 'underline' },
   divider: { width: 1, height: 40 },
   days: { gap: 12, paddingHorizontal: 2, paddingVertical: 4 },
+  open: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 14, borderWidth: 1, borderStyle: 'dashed' },
   weekNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 28 },
 });

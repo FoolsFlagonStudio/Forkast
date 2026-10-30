@@ -59,6 +59,7 @@ function sanitize(saved: { index?: unknown; answers?: Partial<Answers> }): Draft
     autoPlan: typeof a.autoPlan === 'boolean' ? a.autoPlan : initialAnswers.autoPlan,
     autoPlanDay: DAYS.some((d) => d.day === a.autoPlanDay) ? a.autoPlanDay : initialAnswers.autoPlanDay,
     autoPlanDayTouched: !!a.autoPlanDayTouched,
+    leftoversForLunch: !!a.leftoversForLunch,
     diets: Array.isArray(a.diets) ? a.diets.filter((k) => DIETS.some((d) => d.key === k)) : [],
     allergies: Array.isArray(a.allergies) ? a.allergies.filter((k) => ALLERGIES.some((x) => x.key === k)) : [],
     macros: { ...initialAnswers.macros, ...(a.macros ?? {}) },

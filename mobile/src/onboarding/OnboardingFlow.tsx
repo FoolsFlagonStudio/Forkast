@@ -3,6 +3,7 @@ import { Animated, BackHandler, Easing, KeyboardAvoidingView, Platform, Pressabl
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ApiError } from '@/api/client';
+import { todayISO, weekStartFor } from '@/lib/dates';
 import { mealPlansApi } from '@/api/mealPlans';
 import { preferencesApi, type DietaryLabel } from '@/api/preferences';
 import { useAuth } from '@/auth/AuthProvider';
@@ -107,7 +108,8 @@ export function OnboardingFlow() {
         else throw e;
       }
       // Build the first week right away. If it fails, Home shows "Plan my week" instead.
-      await mealPlansApi.generate(authedRequest).catch(() => null);
+      // This week, from today on (the planner skips days that are already over).
+      await mealPlansApi.generate(authedRequest, weekStartFor(todayISO(), answers.weekStart)).catch(() => null);
       await new Promise((r) => setTimeout(r, Math.max(0, MIN_BUILDING_MS - (Date.now() - started))));
       await onboardingDraft.clear(userId);
       updateUser({ onboardingCompleted: true });

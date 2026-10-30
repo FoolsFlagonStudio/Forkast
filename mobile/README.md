@@ -2,7 +2,7 @@
 
 The Victual app for iOS and Android, built with Expo and React Native. This is the user-facing product: preferences, weekly meal plans, recipes, and grocery lists.
 
-> **Status:** every designed screen is built: splash, auth, onboarding, and the main app (Home, Plan, Groceries, Recipes, Profile, recipe detail, cook mode, budget, settings). Auth, preferences, recipes and favorites use the live backend. Meal plans and grocery lists are simulated on the device until the backend's generator exists (see [docs/meal-plan-api.md](docs/meal-plan-api.md)).
+> **Status:** every designed screen is built: splash, auth, onboarding, and the main app (Home, Plan, Groceries, Recipes, Profile, recipe detail, cook mode, budget, settings). Everything uses the live backend, meal plans and grocery lists included (see [docs/meal-plan-api.md](docs/meal-plan-api.md)). `EXPO_PUBLIC_MOCK_PLANS=1` simulates plans on the device instead, and `EXPO_PUBLIC_DEMO=1` runs the whole app on sample data.
 
 ## Screens
 
@@ -17,11 +17,15 @@ The Victual app for iOS and Android, built with Expo and React Native. This is t
 | Cook mode | One step at a time, timers parsed from the step ("15-20 minutes" -> 15:00), screen stays on, thumbs up/down at the end |
 | Budget | Breakdown by meal, history chart, weeks under budget |
 
-**Lock / swap / regenerate.** The lock on a meal card keeps it through Regen. Swap and Favs open a sheet: pick a meal, then a suggestion (with the price difference) or a favorite. Changing a meal changes every leftover day of it too.
+**Lock / swap / regenerate.** The lock on a meal card keeps it through Regen. Swap opens a sheet: pick a meal, then a suggestion (with the price difference), a favorite, or any recipe by search; the Side tab adds, changes or removes the side cooked with it. Changing a meal changes every leftover day of it too. Meals whose day has started can't be swapped.
+
+**Add to plan.** Every recipe page has Add to plan: pick a day and meal. An open slot gets the recipe, a planned one is swapped, and with no plan for the week yet you can plan the week around it or add just that meal.
+
+**Cook mode timers** keep running when you move between steps or leave the app, and a notification goes off when one ends (local notifications, works in Expo Go).
 
 **Data modes** (`src/config/features.ts`, set in `.env.local`):
 
-- Default: live backend, with meal plans simulated on the device (`EXPO_PUBLIC_MOCK_PLANS`, on by default). A dashed "Preview" note shows on plan screens while this is on.
+- Default: everything from the live backend. `EXPO_PUBLIC_MOCK_PLANS=1` simulates meal plans on the device instead (a dashed "Preview" note shows on plan screens while it is on).
 - `EXPO_PUBLIC_DEMO=1`: everything runs on built-in sample recipes with nine weeks of history, no backend needed. Any email and password logs in. Good for portfolio demos and UI work.
 
 ## Responsibilities

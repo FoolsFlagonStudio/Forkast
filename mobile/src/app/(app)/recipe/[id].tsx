@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import Svg, { Circle } from 'react-native-svg';
 import { recipesApi, type IngredientLine, type RecipeDetail } from '@/api/recipes';
 import { useAuth } from '@/auth/AuthProvider';
+import { AddToPlanSheet } from '@/components/app/AddToPlanSheet';
 import { BackHeader, ErrorNote, Loading, Screen, tap } from '@/components/app/ui';
 import { Button } from '@/components/Button';
 import { Text } from '@/components/Text';
@@ -28,6 +29,8 @@ export default function RecipeScreen() {
   const [tab, setTab] = useState(0);
   const [checked, setChecked] = useState<Set<number>>(new Set());
   const [attempt, setAttempt] = useState(0);
+  const [adding, setAdding] = useState(false);
+  const [added, setAdded] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -197,11 +200,18 @@ export default function RecipeScreen() {
         </View>
       )}
 
+      <Button label="Add to plan" size="lg" style={{ marginTop: 32 }} onPress={() => (setAdded(null), setAdding(true))} />
+      {added ? (
+        <Text variant="label" color="subtle" style={{ textAlign: 'center', marginTop: 10 }} accessibilityLiveRegion="polite">
+          {added}
+        </Text>
+      ) : null}
+      <AddToPlanSheet visible={adding} onClose={() => setAdding(false)} recipe={recipe} onDone={setAdded} />
       {recipe.steps.length ? (
         <Button
           label="Start cooking"
           size="lg"
-          style={{ marginTop: 32 }}
+          style={{ marginTop: 14 }}
           onPress={() => router.push({ pathname: '/cook/[id]', params: { id: recipe.id, servings: String(servings ?? recipe.servings) } })}
         />
       ) : null}

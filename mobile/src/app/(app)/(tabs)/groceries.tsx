@@ -25,9 +25,12 @@ const AISLES: { aisle: Aisle; label: string; Glyph: (typeof Icon)[keyof typeof I
 
 export default function Groceries() {
   const { colors } = useTheme();
-  const { plan, grocery, generate, planBusy, refresh, setPurchased } = useAppData();
+  const { plan, grocery, generate, planBusy, refresh, setPurchased, setNeedToBuy } = useAppData();
   const [refreshing, setRefreshing] = useState(false);
-  const items = grocery.data?.items ?? [];
+  const all = grocery.data?.items ?? [];
+  // Pantry staples (oil, salt, flour...) sit in their own section until you say you need them.
+  const items = all.filter((i) => !i.pantry || i.needToBuy);
+  const pantry = all.filter((i) => i.pantry && !i.needToBuy);
   const done = items.filter((i) => i.purchased).length;
 
   return (
@@ -44,7 +47,7 @@ export default function Groceries() {
       }
     >
       <PreviewBanner />
-      <PageTitle eyebrow={plan ? `${formatRange(plan.weekStartDate, plan.weekEndDate)} · about ${money(plan.estimatedTotalCost, true)}` : undefined} title="Groceries" />
+      <PageTitle eyebrow={plan ? `${formatRange(plan.weekStartDate, plan.weekEndDate)} · about ${money(grocery.data?.estimatedTotalCost ?? plan.estimatedTotalCost, true)}` : undefined} title="Groceries" />
 
       {plan === undefined || (grocery.loading && !grocery.data) ? (
         <Loading />
@@ -72,14 +75,48 @@ export default function Groceries() {
                   </Text>
                 </View>
                 {list.map((item) => (
-                  <GroceryRow key={item.id} item={item} onToggle={() => setPurchased(item.id, !item.purchased)} />
+                  <GroceryRow
+                    key={item.id}
+                    item={item}
+                    onToggle={() => setPurchased(item.id, !item.purchased)}
+                    onUndoNeed={item.pantry ? () => setNeedToBuy(item.id, false) : undefined}
+                  />
                 ))}
               </View>
             );
           })}
+          {pantry.length ? (
+            <View style={{ marginTop: 34 }}>
+              <View style={styles.aisleHead}>
+                <Icon.pantry size={18} color={colors.primary} strokeWidth={1.75} />
+                <Text variant="option" color="textStrong" accessibilityRole="header" style={{ fontFamily: fontFamily('ui', 600) }}>
+                  Check your pantry
+                </Text>
+              </View>
+              <Text variant="label" color="subtle" style={{ marginBottom: 6 }}>
+                Staples you probably have, left out of your total. Out of one? Tap Need it to add it to your list.
+              </Text>
+              {pantry.map((item) => (
+                <View key={item.id} style={styles.row}>
+                  <Text variant="option" color="text" style={{ flex: 1 }}>
+                    {ingredientText({ amount: item.totalAmount, displayAmount: item.displayAmount, unit: item.unit, name: item.name })}
+                  </Text>
+                  <Text
+                    variant="label"
+                    style={{ textDecorationLine: 'underline', color: colors.selected }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Need ${item.name}: add it to your list`}
+                    onPress={() => (tap(), setNeedToBuy(item.id, true))}
+                  >
+                    Need it
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
           {grocery.error ? <ErrorNote message={grocery.error} /> : null}
           <Text variant="fine" color="muted" style={{ marginTop: 28 }}>
-            Amounts cover every planned serving, leftovers included. Prices are estimates and stores sell whole packages, so your total may differ.
+            Amounts cover every planned serving, leftovers and sides included. Prices are estimates and stores sell whole packages, so your total may differ.
           </Text>
         </>
       )}
@@ -87,7 +124,7 @@ export default function Groceries() {
   );
 }
 
-function GroceryRow({ item, onToggle }: { item: GroceryListItem; onToggle: () => void }) {
+function GroceryRow({ item, onToggle, onUndoNeed }: { item: GroceryListItem; onToggle: () => void; onUndoNeed?: () => void }) {
   const { colors } = useTheme();
   const text = ingredientText({ amount: item.totalAmount, displayAmount: item.displayAmount, unit: item.unit, name: item.name });
   return (
@@ -103,12 +140,21 @@ function GroceryRow({ item, onToggle }: { item: GroceryListItem; onToggle: () =>
       style={styles.row}
     >
       <View style={[styles.box, item.purchased ? { backgroundColor: colors.selected, borderColor: colors.selected } : { borderColor: colors.muted }]} />
-      <Text
-        variant="option"
-        style={[{ flex: 1, color: item.purchased ? colors.muted : colors.text }, item.purchased && { textDecorationLine: 'line-through' }]}
-      >
-        {text}
-      </Text>
+      <View style={{ flex: 1 }}>
+        <Text variant="option" style={[{ color: item.purchased ? colors.muted : colors.text }, item.purchased && { textDecorationLine: 'line-through' }]}>
+          {text}
+        </Text>
+        {item.packageText || item.estimatedCost != null ? (
+          <Text variant="label" color="muted">
+            {[item.packageText, item.estimatedCost != null ? money(item.estimatedCost) : null].filter(Boolean).join(' · ')}
+          </Text>
+        ) : null}
+      </View>
+      {onUndoNeed ? (
+        <Text variant="label" color="subtle" style={{ textDecorationLine: 'underline' }} accessibilityRole="button" accessibilityLabel={`Have ${item.name}: move it back to the pantry`} onPress={() => (tap(), onUndoNeed())}>
+          Have it
+        </Text>
+      ) : null}
     </Pressable>
   );
 }

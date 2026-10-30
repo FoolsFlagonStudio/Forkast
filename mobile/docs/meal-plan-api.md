@@ -1,64 +1,30 @@
-# Meal Plan API: what the app expects
+# Meal plans in the app
 
-The app is built against these routes. Until the backend has them, `features.mockMealPlans` (on by default) serves them on the device from `src/api/mock`, planning with your real recipes from `/api/recipes`. Once the backend ships them, set `EXPO_PUBLIC_MOCK_PLANS=0` and nothing else in the app changes.
+The app uses the backend's meal plan routes (`MealPlanController`, `GroceryListController`). `src/api/mealPlans.ts` calls them and maps the JSON into the shapes the screens use, so screens never see the backend's `selections` / `days` / `toBuy` / `pantry` layout directly.
 
-Types live in `src/api/mealPlans.ts`. The planned routes in `backend/README.md` are kept; additions are marked **new**.
+| App call | Backend route |
+| --- | --- |
+| `current` | `GET /api/meal-plans/current` (404 when no plan covers today) |
+| `list` | `GET /api/meal-plans?page=0&size=52` |
+| `get` | `GET /api/meal-plans/{id}` |
+| `generate(weekStart)` | `POST /api/meal-plans/generate {weekStart}`: the app always sends this week's start. A week that has started is planned from today on |
+| `regenerate` | `POST /api/meal-plans/{id}/regenerate` (locked and started meals are kept) |
+| `setLocked` | `PATCH /api/meal-plans/{id}/selections/{selectionId} {locked}` |
+| `swap` | `POST /api/meal-plans/{id}/selections/{selectionId}/swap {recipeId}` |
+| `suggestions` | `GET /api/meal-plans/{id}/selections/{selectionId}/suggestions` |
+| `sideSuggestions` / `setSide` / `removeSide` | `GET .../side-suggestions`, `POST .../side {recipeId?}`, `DELETE .../side` |
+| `addMeal` | `POST /api/meal-plans/meals {date, slot, recipeId}` (creates the week's plan if needed) |
+| `groceryList` | `GET /api/meal-plans/{id}/grocery-list` |
+| `setPurchased` / `setNeedToBuy` | `PATCH /api/grocery-list-items/{id} {purchased}` / `{needToBuy}` |
 
-## Routes
+How the mapping works:
 
-| Method | Route | Returns | Notes |
-| --- | --- | --- | --- |
-| GET | `/api/meal-plans/current` **new** | `MealPlan` | Plan whose week contains today (by the user's `planStartDay`). 404 when there's none. |
-| GET | `/api/meal-plans` | `MealPlanSummary[]` | Newest first. Feeds Plan > History and the Budget chart. |
-| GET | `/api/meal-plans/{id}` | `MealPlan` | |
-| POST | `/api/meal-plans/generate` | `MealPlan` | Body `{ weekStartDate? }`, defaults to the current week. Replaces an existing plan for that week. |
-| POST | `/api/meal-plans/{id}/regenerate` **new** | `MealPlan` | New recipes for every meal that isn't locked. Rebuilds the grocery list. |
-| PATCH | `/api/meal-plans/{id}/meals/{mealId}` **new** | `MealPlan` | Body `{ locked?, recipeId? }`. Lock or swap. Applies to the whole run of days the recipe covers (see below). |
-| GET | `/api/meal-plans/{id}/meals/{mealId}/alternatives?limit=` **new** | `RecipeSummary[]` | Swap suggestions for that slot that fit the user's restrictions and aren't already in the plan, cheapest first. |
-| DELETE | `/api/meal-plans/{id}` | 204 | |
-| GET | `/api/meal-plans/{id}/grocery-list` | `GroceryList` | |
-| PATCH | `/api/grocery-list-items/{id}` | `GroceryListItem` | Body `{ purchased }`. |
+- **Meals.** Each calendar meal becomes a `PlannedMeal` with the `selectionId` it's eaten from. Lock, swap and sides act on the selection, so they change every day that recipe covers. `started` is true once the selection's first day is today or earlier (the backend refuses to swap those).
+- **Sides.** A selection's side shows as `meal.side`. Mains that want one (a plain roast chicken) get one when the plan is made; the Swap sheet's Side tab changes or removes it.
+- **Costs.** The plan total is the grocery cost (whole packages) when the list exists, otherwise the usage cost. `costBySlot` adds up each slot's mains and sides.
+- **Groceries.** `toBuy` and `pantry` items come back as one list, with `pantry: true` on the staples. The Groceries tab shows those in "Check your pantry", out of the total until you tap Need it.
+- **Aisles.** The backend doesn't store aisles, so `src/lib/aisles.ts` guesses them from ingredient names.
 
-## Shapes
+## Simulated plans
 
-```ts
-MealPlan = {
-  id, weekStartDate, weekEndDate,        // local dates, YYYY-MM-DD
-  budgetTarget, estimatedTotalCost, costComplete,
-  costBySlot: { BREAKFAST?, LUNCH?, DINNER? },   // Budget page breakdown
-  meals: PlannedMeal[],                  // 7 days x included slots, sorted by date then slot
-  generatedAt,
-}
-PlannedMeal = {
-  id, date, dayOfWeek, slot,
-  recipe: RecipeSummary,                 // same shape as /api/recipes items
-  servings,                              // household size
-  leftover: boolean,                     // repeat of a recipe cooked earlier this week
-  locked: boolean,
-}
-GroceryList = { mealPlanId, estimatedTotalCost, items: GroceryListItem[] }
-GroceryListItem = { id, name, aisle, totalAmount, displayAmount, unit, estimatedCost, purchased }
-Aisle = PRODUCE | MEAT | SEAFOOD | DAIRY | EGGS | BAKERY | FROZEN | PANTRY | OTHER
-```
-
-## Behavior the UI relies on
-
-- **Runs and leftovers.** A slot with N recipes per week splits the 7 days into N runs (3 -> 3, 2, 2 days). The first day of a run is cooked, the rest are `leftover: true`. Locking or swapping any day changes the whole run. This is what the `plan_selections` idea in the backend roadmap would store.
-- **Grocery amounts** cover every serving in a run (household x days), skip optional lines, and round whole-unit items (count, can, clove) up.
-- **Aisles.** Ingredients have no aisle yet. The grocery list needs one per item, most simply an `aisle` column on `ingredients` (the 153-item catalog can be tagged once). The mock guesses from the name.
-- **Errors** use the existing ProblemDetail format; the app shows `detail`.
-
-## Preferences additions
-
-`PreferencesRequest` / `PreferencesResponse` gain two fields (the app already sends them; Spring ignores unknown fields until they exist):
-
-| Field | Type | Meaning |
-| --- | --- | --- |
-| `autoPlanEnabled` | boolean, default true | Build next week's plan automatically |
-| `autoPlanDay` | DayOfWeek, default the day before `planStartDay` | Which day to build it |
-
-The scheduled generator would run daily and, for each user whose `autoPlanDay` is today, generate the plan for the next week starting on their `planStartDay`. Until the backend returns these fields the app keeps a local copy (`preferencesApi` in `src/api/preferences.ts`).
-
-## Not on the backend yet (kept on the device)
-
-- **Ratings** from the cook mode finish screen (`victual.ratings` in AsyncStorage). A `PUT /api/recipes/{id}/rating { value: UP | DOWN }` would let the generator favor liked recipes.
+`EXPO_PUBLIC_MOCK_PLANS=1` (or demo mode) sends these calls to `src/api/mock` instead. The mock plans with your real recipes, or sample ones in demo mode. It has no sides, pantry staples or auto-planning.

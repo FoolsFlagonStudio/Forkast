@@ -14,11 +14,12 @@ export const features = {
   socialSignIn: false,
 
   /**
-   * Simulate meal plans and grocery lists on the device, built from your real
-   * recipes, until the backend's /api/meal-plans routes exist. Turn off with
-   * EXPO_PUBLIC_MOCK_PLANS=0 once the generator ships. Contract: docs/meal-plan-api.md
+   * Simulate meal plans and grocery lists on the device (built from your real
+   * recipes) instead of using the backend's generator. Off by default now that the
+   * backend plans; EXPO_PUBLIC_MOCK_PLANS=1 turns it back on for UI work.
+   * Sides, pantry staples and auto-planning only exist on the backend.
    */
-  mockMealPlans: flag(process.env.EXPO_PUBLIC_MOCK_PLANS, true),
+  mockMealPlans: flag(process.env.EXPO_PUBLIC_MOCK_PLANS, false),
 
   /**
    * Run the whole app on sample data with no backend (portfolio demos, UI work).

@@ -167,7 +167,7 @@ export function PreviewBanner() {
     <View style={[styles.banner, { borderColor: colors.primary }]}>
       <Icon.info size={14} color={colors.subtle} />
       <Text variant="fine" color="subtle" style={{ flex: 1 }}>
-        {features.demoMode ? 'Demo mode: sample data, nothing is saved to a server.' : 'Preview: meal plans are simulated on this phone until the server can build them.'}
+        {features.demoMode ? 'Demo mode: sample data, nothing is saved to a server.' : 'Preview: meal plans are simulated on this phone, not built by the server (EXPO_PUBLIC_MOCK_PLANS).'}
       </Text>
     </View>
   );

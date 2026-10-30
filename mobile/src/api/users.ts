@@ -7,6 +7,8 @@ export const usersApi = {
   me: (authed: Authed) => authed<User>('/api/users/me'),
   updateName: (authed: Authed, body: { firstName?: string; lastName?: string }) =>
     authed<User>('/api/users/me', { method: 'PATCH', body }),
+  /** IANA zone, e.g. "America/New_York". Plans use it for "today" and the weekly 11pm run. */
+  updateTimezone: (authed: Authed, timezone: string) => authed<User>('/api/users/me', { method: 'PATCH', body: { timezone } }),
   deleteAccount: (authed: Authed, password: string) =>
     authed<void>('/api/users/me', { method: 'DELETE', body: { password } }),
   changePassword: (authed: Authed, body: { currentPassword: string; newPassword: string }) =>

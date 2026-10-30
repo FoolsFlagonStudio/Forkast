@@ -27,10 +27,13 @@ type MealCardProps = {
   onToggleFavorite: () => void;
   /** Omit to hide the lock (history, favorites). */
   onToggleLock?: () => void;
+  /** A side cooked with this main; tapping it opens the side's recipe. */
+  side?: RecipeSummary | null;
+  onPressSide?: () => void;
 };
 
 /** White recipe card with slot label, title, meta, lock and favorite from the Home / Plan designs. */
-export function MealCard({ recipe, slot, leftover, locked, favorite, onPress, onToggleFavorite, onToggleLock }: MealCardProps) {
+export function MealCard({ recipe, slot, leftover, locked, favorite, onPress, onToggleFavorite, onToggleLock, side, onPressSide }: MealCardProps) {
   const { colors, mode } = useTheme();
   const meta = [leftover ? 'Leftovers' : minutes(recipe.totalTimeMinutes), perServing(recipe)].filter(Boolean).join(' · ');
   const tint = TINT[slot ?? 'LUNCH'][mode === 'dark' ? 1 : 0];
@@ -40,7 +43,7 @@ export function MealCard({ recipe, slot, leftover, locked, favorite, onPress, on
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${slot ? `${SLOT_LABEL[slot].toLowerCase()}, ` : ''}${recipe.name}${leftover ? ', leftovers' : ''}. ${meta}`}
+      accessibilityLabel={`${slot ? `${SLOT_LABEL[slot].toLowerCase()}, ` : ''}${recipe.name}${side ? ` with ${side.name}` : ''}${leftover ? ', leftovers' : ''}. ${meta}`}
       style={({ pressed }) => [styles.card, { backgroundColor: colors.surface, opacity: pressed ? 0.92 : 1 }]}
     >
       {recipe.imageUrl ? (
@@ -55,6 +58,18 @@ export function MealCard({ recipe, slot, leftover, locked, favorite, onPress, on
         <Text style={[styles.name, { color: colors.selected }]} numberOfLines={2}>
           {recipe.name}
         </Text>
+        {side ? (
+          <Text
+            variant="label"
+            numberOfLines={1}
+            onPress={onPressSide}
+            accessibilityRole={onPressSide ? 'link' : undefined}
+            accessibilityLabel={`Side: ${side.name}${onPressSide ? '. Open recipe' : ''}`}
+            style={{ color: mode === 'dark' ? colors.secondary : tokens.palette.plum }}
+          >
+            + {side.name}
+          </Text>
+        ) : null}
         {meta ? (
           <Text variant="label" color="subtle" numberOfLines={1}>
             {meta}

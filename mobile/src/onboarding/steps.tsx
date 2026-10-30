@@ -169,6 +169,19 @@ export function PerWeek({ answers, update }: StepProps) {
           );
         })}
       </View>
+      {answers.meals.includes('LUNCH') && answers.meals.includes('DINNER') ? (
+        <View style={[styles.autoRow, { borderTopColor: colors.divider, marginHorizontal: 12 }]}>
+          <View style={{ flex: 1 }}>
+            <Text variant="option" color="heading">
+              Leftovers for lunch
+            </Text>
+            <Text variant="label" color="subtle">
+              Cook a little more at dinner and have it for lunch the next day.
+            </Text>
+          </View>
+          <Toggle value={answers.leftoversForLunch} onValueChange={(v) => update({ leftoversForLunch: v })} label="Leftovers for lunch" />
+        </View>
+      ) : null}
     </View>
   );
 }

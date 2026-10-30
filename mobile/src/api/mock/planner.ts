@@ -8,11 +8,14 @@
 // - locked meals keep their recipe through regenerate
 // - picks are shuffled per seed, then the priciest picks are swapped for
 //   cheaper ones until the week fits the budget
-import type { GroceryList, GroceryListItem, MealPlan, PlannedMeal, Aisle } from '@/api/mealPlans';
+import type { Aisle, GroceryList, GroceryListItem, MealPlan, PlannedMeal } from '@/api/mealPlans';
 import type { MealSlot, PreferencesResponse } from '@/api/preferences';
 import type { RecipeDetail, RecipeSummary } from '@/api/recipes';
 import { addDays, dayOfWeek, fromISO } from '@/lib/dates';
 import { amount as formatAmount } from '@/lib/format';
+import { guessAisle } from '@/lib/aisles';
+
+export { guessAisle };
 
 export type PoolEntry = { recipe: RecipeSummary; slot?: MealSlot };
 
@@ -133,7 +136,8 @@ export function buildPlan(opts: {
   const meals: PlannedMeal[] = selections.flatMap((s) =>
     s.days.map((d, i) => {
       const date = addDays(weekStartDate, d);
-      return { id: `${opts.id}_${date}_${s.slot}`, date, dayOfWeek: dayOfWeek(date), slot: s.slot, recipe: s.recipe, servings, leftover: i > 0, locked: s.locked };
+      const selectionId = `${opts.id}_${addDays(weekStartDate, s.days[0])}_${s.slot}`;
+      return { id: `${opts.id}_${date}_${s.slot}`, selectionId, date, dayOfWeek: dayOfWeek(date), slot: s.slot, recipe: s.recipe, servings, leftover: i > 0, locked: s.locked, started: false, side: null };
     }),
   );
   // Regenerating mid-week: days already over stay as they were.
@@ -149,6 +153,7 @@ export function buildPlan(opts: {
     costComplete: true,
     costBySlot: {},
     meals,
+    openMeals: [],
     generatedAt: new Date().toISOString(),
   });
 }
@@ -180,20 +185,8 @@ export function runOf(plan: MealPlan, mealId: string): PlannedMeal[] {
 
 // ---------- Grocery list ----------
 
-const AISLE_WORDS: [Aisle, RegExp][] = [
-  ['FROZEN', /frozen/i],
-  ['SEAFOOD', /shrimp|salmon|tuna|cod|tilapia|fish|scallop|crab/i],
-  ['MEAT', /chicken|beef|steak|turkey|pork|bacon|sausage|ham|lamb/i],
-  ['EGGS', /\beggs?\b/i],
-  ['DAIRY', /milk|cheese|cheddar|parmesan|mozzarella|yogurt|butter|cream/i],
-  ['BAKERY', /bread|tortilla|bun|bagel|pita|roll/i],
-  ['PRODUCE', /onion|garlic|pepper(?!corn)|tomato|lettuce|spinach|carrot|potato|lemon|lime|apple|banana|berr|avocado|cucumber|broccoli|bean sprout|green bean|herb|cilantro|parsley|basil|ginger|celery|zucchini|mushroom|kale|cabbage|greens|peas|tofu/i],
-  ['PANTRY', /rice|pasta|spaghetti|oat|flour|sugar|oil|vinegar|sauce|broth|stock|bean|lentil|chickpea|quinoa|spice|cumin|paprika|chili|salt|honey|syrup|seasoning|can|seed|granola|mayo|salsa|pesto|cornstarch|baking/i],
-];
-
 const WHOLE_UNITS = new Set(['count', 'can', 'clove']);
 
-export const guessAisle = (name: string): Aisle => AISLE_WORDS.find(([, re]) => re.test(name))?.[0] ?? 'OTHER';
 
 export async function buildGroceryList(
   plan: MealPlan,
@@ -229,6 +222,9 @@ export async function buildGroceryList(
           unit: line.unit,
           estimatedCost: null,
           purchased: !!purchased[`${plan.id}__${key}`],
+          pantry: false,
+          needToBuy: false,
+          packageText: null,
         });
       }
     }

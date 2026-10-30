@@ -4,6 +4,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ApiError } from '@/api/client';
 import { mealPlansApi, type GroceryList, type MealPlan, type MealPlanSummary } from '@/api/mealPlans';
+import type { MealSlot } from '@/api/preferences';
+import { usersApi } from '@/api/users';
+import { features } from '@/config/features';
+import { todayISO, weekStartFor } from '@/lib/dates';
 import { preferencesApi, type DietaryLabel, type PreferencesRequest, type PreferencesResponse } from '@/api/preferences';
 import { recipesApi, type RecipeSummary } from '@/api/recipes';
 import { useAuth } from '@/auth/AuthProvider';
@@ -26,7 +30,13 @@ type AppData = {
   regenerate: () => Promise<void>;
   toggleLock: (mealId: string) => Promise<void>;
   swap: (mealId: string, recipeId: string) => Promise<void>;
+  /** recipeId null: pick one. */
+  setSide: (mealId: string, recipeId: string | null) => Promise<void>;
+  removeSide: (mealId: string) => Promise<void>;
+  /** Puts a recipe on an open day and slot (creating that week's plan if needed). */
+  addMeal: (body: { date: string; slot: MealSlot; recipeId: string }) => Promise<void>;
   setPurchased: (itemId: string, purchased: boolean) => Promise<void>;
+  setNeedToBuy: (itemId: string, needToBuy: boolean) => Promise<void>;
   getPlan: (id: string) => Promise<MealPlan>;
 
   isFavorite: (r: Pick<RecipeSummary, 'id' | 'favorite'>) => boolean;
@@ -46,6 +56,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [grocery, setGrocery] = useState<Loadable<GroceryList | null>>({ data: null, loading: false, error: null });
   const [history, setHistory] = useState<Loadable<MealPlanSummary[]>>({ data: [], loading: false, error: null });
   const [favOverrides, setFavOverrides] = useState<Record<string, boolean>>({});
+  // Plans don't say which recipes are favorites, so load the ids once.
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const planCache = useRef(new Map<string, MealPlan>());
 
   const loadGrocery = useCallback(
@@ -101,6 +113,22 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    recipesApi
+      .favorites(authedRequest, 0, 200)
+      .then((p) => setFavoriteIds(new Set(p.items.map((r) => r.id))))
+      .catch(() => {});
+    // The backend plans in your timezone ("today", the weekly job's 11pm). Keep it in sync with the phone.
+    if (!features.demoMode) {
+      try {
+        const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (zone) usersApi.updateTimezone(authedRequest, zone).catch(() => {});
+      } catch {
+        /* no Intl time zone support: the backend keeps its default */
+      }
+    }
+  }, [authedRequest]);
+
   const run = useCallback(async (fn: () => Promise<MealPlan>, opts?: { groceries?: boolean }) => {
     setPlanBusy(true);
     setPlanError(null);
@@ -115,7 +143,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   }, [applyPlan]);
 
   const value = useMemo<AppData>(() => {
-    const isFavorite = (r: Pick<RecipeSummary, 'id' | 'favorite'>) => favOverrides[r.id] ?? r.favorite;
+    const isFavorite = (r: Pick<RecipeSummary, 'id' | 'favorite'>) => favOverrides[r.id] ?? (r.favorite || favoriteIds.has(r.id));
+    const mealById = (mealId: string) => plan?.meals.find((m) => m.id === mealId);
     return {
       prefs,
       labels,
@@ -129,22 +158,18 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       savePreferences: async (body) => {
         setPrefs(await preferencesApi.replace(authedRequest, body));
       },
-      generate: () => run(() => mealPlansApi.generate(authedRequest)),
+      // This week, even when it has started: the planner skips the days already over.
+      generate: () => run(() => mealPlansApi.generate(authedRequest, prefs ? weekStartFor(todayISO(), prefs.planStartDay) : undefined)),
       regenerate: async () => {
         if (plan) await run(() => mealPlansApi.regenerate(authedRequest, plan.id));
       },
       toggleLock: async (mealId) => {
-        if (!plan) return;
-        const meal = plan.meals.find((m) => m.id === mealId);
-        if (!meal) return;
-        // Optimistic: flip the whole run of leftovers that share this recipe.
-        const flip = (p: MealPlan): MealPlan => ({
-          ...p,
-          meals: p.meals.map((m) => (m.slot === meal.slot && m.recipe.id === meal.recipe.id ? { ...m, locked: !meal.locked } : m)),
-        });
-        setPlan(flip(plan));
+        const meal = mealById(mealId);
+        if (!plan || !meal) return;
+        // Optimistic: flip every day this recipe covers.
+        setPlan({ ...plan, meals: plan.meals.map((m) => (m.selectionId === meal.selectionId ? { ...m, locked: !meal.locked } : m)) });
         try {
-          const updated = await mealPlansApi.updateMeal(authedRequest, plan.id, mealId, { locked: !meal.locked });
+          const updated = await mealPlansApi.setLocked(authedRequest, plan, meal, !meal.locked);
           setPlan(updated);
           planCache.current.set(updated.id, updated);
         } catch (e) {
@@ -153,7 +178,33 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         }
       },
       swap: async (mealId, recipeId) => {
-        if (plan) await run(() => mealPlansApi.updateMeal(authedRequest, plan.id, mealId, { recipeId }));
+        const meal = mealById(mealId);
+        if (plan && meal) await run(() => mealPlansApi.swap(authedRequest, plan, meal, recipeId));
+      },
+      setSide: async (mealId, recipeId) => {
+        const meal = mealById(mealId);
+        if (plan && meal) await run(() => mealPlansApi.setSide(authedRequest, plan, meal, recipeId));
+      },
+      removeSide: async (mealId) => {
+        const meal = mealById(mealId);
+        if (plan && meal) await run(() => mealPlansApi.removeSide(authedRequest, plan, meal));
+      },
+      addMeal: async (body) => {
+        setPlanBusy(true);
+        setPlanError(null);
+        try {
+          const updated = await mealPlansApi.addMeal(authedRequest, body);
+          planCache.current.set(updated.id, updated);
+          // Another week's plan: keep showing this week's, just refresh the history.
+          const today = todayISO();
+          if (updated.weekStartDate <= today && today <= updated.weekEndDate) applyPlan(updated);
+          else loadHistory();
+        } catch (e) {
+          setPlanError(message(e));
+          throw e;
+        } finally {
+          setPlanBusy(false);
+        }
       },
       setPurchased: async (itemId, purchased) => {
         const prev = grocery.data;
@@ -161,6 +212,18 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         setGrocery((g) => ({ ...g, data: g.data && { ...g.data, items: g.data.items.map((i) => (i.id === itemId ? { ...i, purchased } : i)) } }));
         try {
           await mealPlansApi.setPurchased(authedRequest, itemId, purchased);
+        } catch (e) {
+          setGrocery((g) => ({ ...g, data: prev, error: message(e) }));
+        }
+      },
+      setNeedToBuy: async (itemId, needToBuy) => {
+        const prev = grocery.data;
+        if (!prev) return;
+        setGrocery((g) => ({ ...g, data: g.data && { ...g.data, items: g.data.items.map((i) => (i.id === itemId ? { ...i, needToBuy } : i)) } }));
+        try {
+          await mealPlansApi.setNeedToBuy(authedRequest, itemId, needToBuy);
+          // The total changes with it; the backend recomputes it.
+          if (plan) loadGrocery(plan);
         } catch (e) {
           setGrocery((g) => ({ ...g, data: prev, error: message(e) }));
         }
@@ -185,7 +248,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         }
       },
     };
-  }, [prefs, labels, plan, planError, planBusy, grocery, history, refresh, authedRequest, run, favOverrides]);
+  }, [prefs, labels, plan, planError, planBusy, grocery, history, refresh, authedRequest, run, favOverrides, favoriteIds, applyPlan, loadGrocery, loadHistory]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

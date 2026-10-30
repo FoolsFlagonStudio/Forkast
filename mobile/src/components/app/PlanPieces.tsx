@@ -1,12 +1,11 @@
 // Plan-related pieces used on Home, Plan and Budget.
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import Svg, { Line, Rect } from 'react-native-svg';
 import { mealPlansApi, type MealPlan, type PlannedMeal } from '@/api/mealPlans';
 import type { RecipeSummary } from '@/api/recipes';
 import { recipesApi } from '@/api/recipes';
-import { runOf } from '@/api/mock/planner';
 import { useAuth } from '@/auth/AuthProvider';
 import { Text } from '@/components/Text';
 import { useAppData } from '@/data/AppData';
@@ -17,6 +16,7 @@ import { tokens } from '@/theme/tokens';
 import { useTheme } from '@/theme/themeContext';
 import { ConfirmSheet, Sheet } from './Sheet';
 import { MealCard } from './MealCard';
+import { Icon } from '@/theme/icons';
 import { ErrorNote, tap } from './ui';
 
 /** Sage pill button (Regen / Swap). */
@@ -53,6 +53,8 @@ export function DayMeals({ meals }: { meals: PlannedMeal[] }) {
           onPress={() => router.push({ pathname: '/recipe/[id]', params: { id: m.recipe.id, servings: String(m.servings) } })}
           onToggleFavorite={() => toggleFavorite(m.recipe)}
           onToggleLock={() => toggleLock(m.id)}
+          side={m.side}
+          onPressSide={() => m.side && router.push({ pathname: '/recipe/[id]', params: { id: m.side.id, servings: String(m.servings) } })}
         />
       ))}
     </View>
@@ -102,63 +104,99 @@ type SwapProps = {
   onClose: () => void;
   /** Meals to choose from. With one meal the picker is skipped. */
   meals: PlannedMeal[];
-  initialTab: 'suggestions' | 'favorites';
+  initialTab: SwapTab;
   cheaperFirst?: boolean;
 };
 
-/** Pick a meal, then a replacement from suggestions or favorites. Swaps every leftover day too. */
+type SwapTab = 'suggestions' | 'favorites' | 'search' | 'side';
+type Option = { recipe: RecipeSummary; costChange: number | null };
+
+/** The cooked day of each recipe in `meals` (swapping a leftover swaps the meal it came from). */
+function selectionsIn(plan: MealPlan, meals: PlannedMeal[]): PlannedMeal[] {
+  const ids = new Set(meals.map((m) => m.selectionId));
+  const seen = new Set<string>();
+  return plan.meals.filter((m) => ids.has(m.selectionId) && !seen.has(m.selectionId) && (seen.add(m.selectionId), true));
+}
+
+/**
+ * Pick a meal, then a replacement from suggestions, favorites or a search. Swaps every
+ * leftover day too. Meals that have started can't be swapped. With sides on (the real
+ * backend), the Side tab adds, changes or removes the side cooked with the main.
+ */
 export function SwapSheet({ visible, onClose, meals, initialTab, cheaperFirst }: SwapProps) {
   const { colors } = useTheme();
   const { authedRequest } = useAuth();
-  const { plan, swap } = useAppData();
+  const { plan, swap, setSide, removeSide } = useAppData();
   const [meal, setMeal] = useState<PlannedMeal | null>(null);
-  const [tab, setTab] = useState(initialTab);
-  const [options, setOptions] = useState<RecipeSummary[] | null>(null);
+  const [tab, setTab] = useState<SwapTab>(initialTab);
+  const [options, setOptions] = useState<Option[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [q, setQ] = useState('');
+  const [debounced, setDebounced] = useState('');
+  const sides = mealPlansApi.sidesSupported();
 
-  // Cooked meals only: swapping a leftover swaps the meal it came from.
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(q.trim()), 300);
+    return () => clearTimeout(t);
+  }, [q]);
+
   const choices = useMemo(() => {
     if (!plan) return [];
-    const seen = new Set<string>();
-    return meals
-      .map((m) => runOf(plan, m.id)[0] ?? m)
-      .filter((m) => (seen.has(m.id) ? false : (seen.add(m.id), true)))
+    return selectionsIn(plan, meals)
+      .filter((m) => !m.started)
       .sort((a, b) => (cheaperFirst ? (b.recipe.costPerServing ?? 0) - (a.recipe.costPerServing ?? 0) : 0));
   }, [plan, meals, cheaperFirst]);
 
   useEffect(() => {
     if (!visible) return;
     setTab(initialTab);
+    setQ('');
     setMeal(choices.length === 1 ? choices[0] : null);
   }, [visible, initialTab, choices]);
+
+  // Keep the picked meal current after a side change (the plan object is replaced).
+  const current = meal && plan ? (plan.meals.find((m) => m.id === meal.id) ?? meal) : meal;
 
   useEffect(() => {
     if (!visible || !meal || !plan) return;
     let cancelled = false;
     setOptions(null);
     setError(null);
-    const load =
-      tab === 'favorites'
-        ? recipesApi.favorites(authedRequest, 0, 30).then((p) => p.items)
-        : mealPlansApi.alternatives(authedRequest, plan.id, meal.id, 10);
+    let load: Promise<Option[]>;
+    if (tab === 'favorites') load = recipesApi.favorites(authedRequest, 0, 30).then((p) => p.items.map((recipe) => ({ recipe, costChange: null })));
+    else if (tab === 'search')
+      load = debounced
+        ? recipesApi.search(authedRequest, { q: debounced, sort: 'fit', size: 25 }).then((p) => p.items.map((recipe) => ({ recipe, costChange: null })))
+        : Promise.resolve([]);
+    else if (tab === 'side') load = mealPlansApi.sideSuggestions(authedRequest, plan, meal);
+    else load = mealPlansApi.suggestions(authedRequest, plan, meal);
     load
-      .then((list) => !cancelled && setOptions(list.filter((r) => r.id !== meal.recipe.id)))
+      .then((list) => !cancelled && setOptions(list.filter((o) => o.recipe.id !== meal.recipe.id)))
       .catch(() => !cancelled && setError("Couldn't load options. Try again."));
     return () => {
       cancelled = true;
     };
-  }, [visible, meal, tab, plan, authedRequest]);
+    // `plan` is left out on purpose: a side change replaces it, and the list shouldn't reload under your thumb.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, meal, tab, debounced, authedRequest]);
 
-  const run = meal && plan ? runOf(plan, meal.id) : [];
+  const run = current && plan ? plan.meals.filter((m) => m.selectionId === current.selectionId) : [];
   const days = run.map((m) => dayLabel(m.dayOfWeek).slice(0, 3)).join(', ');
+  const tabs: SwapTab[] = sides ? ['suggestions', 'favorites', 'search', 'side'] : ['suggestions', 'favorites', 'search'];
+  const pick = (r: RecipeSummary) => {
+    if (!current) return;
+    tap();
+    (tab === 'side' ? setSide(current.id, r.id) : swap(current.id, r.id)).catch(() => {});
+    onClose();
+  };
 
   return (
-    <Sheet visible={visible} onClose={onClose} title={meal ? `Swap ${meal.recipe.name}` : 'Which meal?'}>
-      {!meal ? (
+    <Sheet visible={visible} onClose={onClose} title={current ? (tab === 'side' ? `Side for ${current.recipe.name}` : `Swap ${current.recipe.name}`) : 'Which meal?'}>
+      {!current ? (
         <View style={{ gap: 12 }}>
           {choices.length === 0 ? (
             <Text variant="bodySmall" color="subtle">
-              No meals to swap here.
+              {plan && selectionsIn(plan, meals).length ? "These meals have started, so they can't be swapped." : 'No meals to swap here.'}
             </Text>
           ) : null}
           {choices.map((m) => (
@@ -174,6 +212,7 @@ export function SwapSheet({ visible, onClose, meals, initialTab, cheaperFirst }:
                 </Text>
                 <Text variant="option" color="heading">
                   {m.recipe.name}
+                  {m.side ? ` + ${m.side.name}` : ''}
                 </Text>
               </View>
               <Text variant="label" color="subtle">
@@ -188,34 +227,101 @@ export function SwapSheet({ visible, onClose, meals, initialTab, cheaperFirst }:
             {run.length > 1 ? `Changes ${days} (cooked once, then leftovers).` : `Changes ${days}.`}
           </Text>
           <View style={styles.tabs} accessibilityRole="tablist">
-            {(['suggestions', 'favorites'] as const).map((t) => (
+            {tabs.map((t) => (
               <Pressable key={t} onPress={() => setTab(t)} accessibilityRole="tab" accessibilityState={{ selected: tab === t }} style={styles.tab}>
                 <Text variant="buttonLarge" color={tab === t ? 'selected' : 'subtle'} style={tab === t && { textDecorationLine: 'underline' }}>
-                  {t === 'suggestions' ? 'SUGGESTIONS' : 'FAVORITES'}
+                  {t.toUpperCase()}
                 </Text>
               </Pressable>
             ))}
           </View>
+
+          {tab === 'search' ? (
+            <View style={[styles.search, { borderBottomColor: colors.divider }]}>
+              <Icon.search size={18} color={colors.muted} />
+              <TextInput
+                value={q}
+                onChangeText={setQ}
+                placeholder="Search recipes or ingredients"
+                placeholderTextColor={colors.muted}
+                returnKeyType="search"
+                autoFocus
+                accessibilityLabel="Search recipes to swap in"
+                style={[styles.searchInput, { color: colors.text }]}
+              />
+            </View>
+          ) : null}
+
+          {tab === 'side' ? (
+            <View style={[styles.sideNow, { backgroundColor: colors.surface }]}>
+              <View style={{ flex: 1 }}>
+                <Text variant="label" color="subtle">
+                  {current.side ? 'Cooked with it now' : 'No side yet'}
+                </Text>
+                <Text variant="option" color="heading">
+                  {current.side ? current.side.name : 'Pick one below, or let us choose'}
+                </Text>
+              </View>
+              {current.side ? (
+                <Text
+                  variant="label"
+                  style={{ textDecorationLine: 'underline' }}
+                  accessibilityRole="button"
+                  onPress={() => {
+                    tap();
+                    removeSide(current.id).catch(() => {});
+                    onClose();
+                  }}
+                >
+                  Remove
+                </Text>
+              ) : (
+                <Text
+                  variant="label"
+                  style={{ textDecorationLine: 'underline' }}
+                  accessibilityRole="button"
+                  onPress={() => {
+                    tap();
+                    setSide(current.id, null).catch(() => {});
+                    onClose();
+                  }}
+                >
+                  Pick for me
+                </Text>
+              )}
+            </View>
+          ) : null}
+
           {error ? <ErrorNote message={error} /> : null}
           {!options && !error ? <ActivityIndicator style={{ marginVertical: 24 }} /> : null}
           {options && options.length === 0 ? (
             <Text variant="bodySmall" color="subtle" style={{ marginVertical: 16 }}>
-              {tab === 'favorites' ? 'No favorites yet. Tap the heart on any recipe to save it here.' : 'No other recipes fit this meal right now.'}
+              {tab === 'favorites'
+                ? 'No favorites yet. Tap the heart on any recipe to save it here.'
+                : tab === 'search'
+                  ? debounced
+                    ? `Nothing matches "${debounced}".`
+                    : 'Type a recipe or an ingredient.'
+                  : tab === 'side'
+                    ? 'No sides to suggest right now.'
+                    : 'No other recipes fit this meal right now.'}
+            </Text>
+          ) : null}
+          {tab === 'search' && options?.length ? (
+            <Text variant="fine" color="subtle" style={{ marginBottom: 8 }}>
+              Any recipe works, as long as it suits {current.slot.toLowerCase()} and keeps for {run.length > 1 ? `${run.length} days` : 'the day'}.
             </Text>
           ) : null}
           <View style={{ gap: 10 }}>
-            {options?.map((r) => {
-              const diff = r.costPerServing != null && meal.recipe.costPerServing != null ? r.costPerServing - meal.recipe.costPerServing : null;
+            {options?.map(({ recipe: r, costChange }) => {
+              const diff =
+                costChange ?? (tab !== 'side' && r.costPerServing != null && current.recipe.costPerServing != null ? (r.costPerServing - current.recipe.costPerServing) * current.servings * run.length : null);
               return (
                 <Pressable
                   key={r.id}
-                  onPress={() => {
-                    tap();
-                    swap(meal.id, r.id).catch(() => {});
-                    onClose();
-                  }}
+                  onPress={() => pick(r)}
                   accessibilityRole="button"
-                  accessibilityLabel={`Swap in ${r.name}, ${perServing(r) ?? ''}`}
+                  accessibilityLabel={`${tab === 'side' ? 'Use' : 'Swap in'} ${r.name}, ${perServing(r) ?? ''}`}
                   style={({ pressed }) => [styles.choice, { backgroundColor: colors.surface, opacity: pressed ? 0.8 : 1 }]}
                 >
                   <View style={{ flex: 1 }}>
@@ -403,8 +509,11 @@ const styles = StyleSheet.create({
   pill: { minWidth: 82, height: 36, paddingHorizontal: 18, borderRadius: 999, alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 3px rgba(0, 0, 0, 0.25)' },
   actions: { flexDirection: 'row', justifyContent: 'center', gap: 22, marginTop: 30 },
   choice: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 12, boxShadow: '0 1px 3px rgba(0, 0, 0, 0.15)' },
-  tabs: { flexDirection: 'row', gap: 24, marginTop: 16, marginBottom: 14 },
+  tabs: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 18, rowGap: 4, marginTop: 16, marginBottom: 14 },
   tab: { paddingVertical: 6 },
+  search: { flexDirection: 'row', alignItems: 'center', gap: 8, borderBottomWidth: 1, paddingBottom: 8, marginBottom: 14 },
+  searchInput: { flex: 1, padding: 0, fontFamily: fontFamily('ui', 400), fontSize: 16 },
+  sideNow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 12, marginBottom: 14, borderWidth: 1, borderColor: tokens.palette.sage },
   budgetCard: { backgroundColor: tokens.palette.forest, borderRadius: 18, padding: 22, boxShadow: '0 3px 6px rgba(0, 0, 0, 0.25)' },
   budgetTrack: { height: 8, borderRadius: 4, backgroundColor: '#41544A', marginTop: 16, overflow: 'hidden' },
   legend: { flexDirection: 'row', gap: 18, marginTop: 12, flexWrap: 'wrap' },

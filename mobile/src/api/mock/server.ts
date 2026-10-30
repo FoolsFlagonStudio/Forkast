@@ -5,7 +5,7 @@ import type { GroceryList, MealPlan, MealPlanSummary } from '@/api/mealPlans';
 import type { DietaryLabel, MealSlot, PreferencesRequest, PreferencesResponse } from '@/api/preferences';
 import type { FitFlag, Page, RecipeDetail, RecipeSummary } from '@/api/recipes';
 import { features } from '@/config/features';
-import { addDays, todayISO, weekStartFor } from '@/lib/dates';
+import { addDays, dayOfWeek, todayISO, weekStartFor } from '@/lib/dates';
 import { ApiError, httpRequest, type RequestOptions } from '../http';
 import { DIETARY_LABEL_NAMES, FIXTURES, type FixtureRecipe } from './fixtures';
 import { buildGroceryList, buildPlan, candidatesFor, runOf, withTotals, type PoolEntry } from './planner';
@@ -242,6 +242,34 @@ async function planRoutes(ctx: Ctx, method: string, pathname: string, params: Re
     await save();
     return withFavorites(ctx, s.plans[id]);
   }
+  if (method === 'POST' && pathname === '/api/meal-plans/meals') {
+    // Put a recipe on one open day and slot, creating that week's plan if needed. Locked, like the backend.
+    const prefs = await ctx.prefs();
+    const { date, slot, recipeId } = body as { date: string; slot: MealSlot; recipeId: string };
+    if (date < todayISO()) throw new ApiError(400, 'That day is already over.');
+    const week = weekStartFor(date, prefs.planStartDay);
+    const id = `plan-${week}`;
+    const plan: MealPlan = s.plans[id] ?? {
+      id, weekStartDate: week, weekEndDate: addDays(week, 6), budgetTarget: prefs.weeklyBudget, estimatedTotalCost: 0,
+      costComplete: true, costBySlot: {}, meals: [], openMeals: [], generatedAt: new Date().toISOString(),
+    };
+    if (plan.meals.some((x) => x.date === date && x.slot === slot)) throw new ApiError(409, "There's already a meal there. Swap it instead.");
+    if (plan.meals.some((x) => x.recipe.id === recipeId)) throw new ApiError(409, 'That recipe is already in this plan.');
+    const pool = await ctx.pool();
+    let recipe = pool.find((p) => p.recipe.id === recipeId)?.recipe;
+    if (!recipe) {
+      const { description, prepTimeMinutes, cookTimeMinutes, servings, category, cuisine, sourceUrl, sourceHost, estimatedCost, ingredients, steps, ...summary } = await ctx.detail(recipeId, prefs.householdServingSize);
+      recipe = summary as RecipeSummary;
+    }
+    const mealId = `${id}_${date}_${slot}`;
+    const meals = [
+      ...plan.meals,
+      { id: mealId, selectionId: mealId, date, dayOfWeek: dayOfWeek(date), slot, recipe, servings: prefs.householdServingSize, leftover: false, locked: true, started: false, side: null },
+    ].sort((a, b) => (a.date === b.date ? ['BREAKFAST', 'LUNCH', 'DINNER'].indexOf(a.slot) - ['BREAKFAST', 'LUNCH', 'DINNER'].indexOf(b.slot) : a.date < b.date ? -1 : 1));
+    s.plans[id] = withTotals({ ...plan, meals });
+    await save();
+    return withFavorites(ctx, s.plans[id]);
+  }
   if ((m = pathname.match(/^\/api\/meal-plans\/([^/]+)\/regenerate$/)) && method === 'POST') {
     const prev = find(m[1]);
     const prefs = await ctx.prefs();
@@ -276,6 +304,9 @@ async function planRoutes(ctx: Ctx, method: string, pathname: string, params: Re
       }
     }
     const ids = new Set(run.map((x) => x.id));
+    if (replacement && plan.meals.some((x) => x.recipe.id === replacement!.id && !ids.has(x.id))) {
+      throw new ApiError(409, 'That recipe is already in this plan.');
+    }
     s.plans[plan.id] = withTotals({
       ...plan,
       meals: plan.meals.map((x) =>

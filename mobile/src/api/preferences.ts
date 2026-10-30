@@ -19,10 +19,11 @@ export type PreferencesRequest = {
   repeatAvoidanceDays: number;
   planStartDay: DayOfWeek;
   prefersMealPrep?: boolean | null;
+  /** Dinner leftovers fill the next day's lunch (when both are planned). */
+  leftoversForLunch?: boolean | null;
   /**
-   * Proposed fields (not in the backend yet - see docs/meal-plan-api.md):
-   * build next week's plan automatically on this day. Spring ignores unknown
-   * fields, so sending them is safe; until the backend stores them the app
+   * Build the coming week's plan automatically, at 11pm on autoPlanDay (default:
+   * the night before planStartDay). Older backends ignored these, so the app also
    * keeps a local copy (see `withLocalAutoPlan`).
    */
   autoPlanEnabled?: boolean;
