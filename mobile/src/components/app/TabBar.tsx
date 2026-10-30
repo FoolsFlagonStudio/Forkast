@@ -1,4 +1,6 @@
+import type { ComponentProps } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import type { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/Text';
 import { icons } from '@/theme/icons';
@@ -13,13 +15,12 @@ export const TABS = [
   { name: 'profile', label: 'Profile', Glyph: icons.tabBar.profile },
 ] as const;
 
-type Props = {
-  state: { index: number; routes: { key: string; name: string }[] };
-  navigation: { navigate: (name: string) => void; emit: (e: { type: 'tabPress'; target: string; canPreventDefault: true }) => { defaultPrevented: boolean } };
-};
+// expo-router's own tab bar props (state, emitter, navigateToTab...). Taken from <Tabs>
+// so a router upgrade that changes them fails the typecheck instead of crashing on tap.
+type Props = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
 /** Bottom tab bar from the designs: sage icons, the active one forest with its label underneath. */
-export function TabBar({ state, navigation }: Props) {
+export function TabBar({ state, emitter, navigateToTab }: Props) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   return (
@@ -35,10 +36,10 @@ export function TabBar({ state, navigation }: Props) {
             accessibilityState={{ selected: active }}
             accessibilityLabel={tab.label}
             onPress={() => {
-              const e = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+              const e = emitter.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
               if (!active && !e.defaultPrevented) {
                 tap();
-                navigation.navigate(route.name);
+                navigateToTab(route.key);
               }
             }}
             style={styles.tab}
