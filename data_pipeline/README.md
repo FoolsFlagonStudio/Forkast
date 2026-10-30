@@ -287,3 +287,17 @@ curl -s -X POST "http://localhost:8080/api/admin/recipes/reprocess" -H "X-Admin-
 4. Re-run `find_fdc.py` and `seed_ingredients.py` for catalog changes, then `POST /api/admin/recipes/reprocess`.
 
 Planned for the next catalog pass: cooked rice, pasta and grains ("cooked white rice" currently matches raw rice, inflating calories); white wine, pecorino, capers, olives, pine nuts, molasses and canned green chiles; aliases for pasta shapes (paccheri, pappardelle, pastina). "cooking oil" was resolved through the review queue and is already an alias of vegetable oil. Find cooked lines with `select ri.raw_text, i.name from recipe_ingredients ri join ingredients i on i.id = ri.ingredient_id where ri.raw_text ilike '%cooked%';`.
+
+## Default recipe counts (plan sweep)
+
+`sweep_plans.py` finds good default "recipes per week" for each budget. For every set of meals (breakfast / lunch / dinner), count per meal (1 to 5) and household size (1, 2, 4), it generates real plans through the API with a $1 budget, so the planner finds the cheapest week it can for that setting. Then, for each budget from $40 to $300, it picks the setting with the most recipes whose cheapest week still fits with 15% headroom (more dinners and lunches win ties). Onboarding uses the result to prefill "How many recipes would you like?" until the user changes a count.
+
+It needs the backend running and a verified app account used only for this (its preferences are overwritten; it makes and deletes plans for a week in 2031). Put `SWEEP_EMAIL` and `SWEEP_PASSWORD` in `.env`.
+
+```bash
+python sweep_plans.py --households 2 --max-count 4 --seeds 1   # quick look, a few minutes
+python sweep_plans.py --write-app                               # full sweep (~1,300 plans), then copy into the app
+python sweep_plans.py --from-csv --headroom 0.9 --write-app     # re-pick from the last results without re-running
+```
+
+Raw runs go to `sweep_results.csv` (git-ignored); the picks to `plan_defaults.json` and, with `--write-app`, `mobile/src/onboarding/plan-defaults.json`. Re-run it after a big recipe import or price refresh.

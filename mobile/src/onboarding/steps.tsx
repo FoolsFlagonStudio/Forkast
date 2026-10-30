@@ -1,5 +1,5 @@
 // One component per onboarding step. Each gets the answers and a setter.
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, TextInput, View, type TextInputInstance } from 'react-native';
 import { dayBefore } from '@/lib/dates';
 import { Text } from '@/components/Text';
@@ -7,6 +7,7 @@ import { Button } from '@/components/Button';
 import { Icon } from '@/theme/icons';
 import { useTheme } from '@/theme/themeContext';
 import { Chip, FieldRow, Lead, OptionCard, StepButton, StepTitle, Toggle } from './components';
+import { suggestedCounts } from './planDefaults';
 import {
   ALLERGIES,
   BUDGET_PRESETS,
@@ -138,14 +139,27 @@ export function Meals({ answers, update }: StepProps) {
 
 export function PerWeek({ answers, update }: StepProps) {
   const { colors } = useTheme();
+  // Until you change a count, suggest the most variety that fits your budget.
+  const suggestion = answers.perWeekTouched ? null : suggestedCounts(answers.meals, answers.household, answers.budget);
+  const suggestionKey = suggestion ? JSON.stringify(suggestion.counts) : '';
+  useEffect(() => {
+    if (!suggestion) return;
+    update((a) => ({ perWeek: { ...a.perWeek, ...suggestion.counts } }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [suggestionKey]);
   return (
     <View>
       <StepTitle>How many recipes{'\n'}would you like{'\n'}for each?</StepTitle>
       <Lead style={{ marginTop: 14 }}>Each meal is planned for all 7 days. Fewer recipes means more leftovers.</Lead>
+      {suggestion ? (
+        <Text variant="label" color="subtle" style={{ textAlign: 'center', marginTop: 8 }}>
+          {suggestion.tight ? `Kept simple to stretch $${answers.budget}` : `Suggested to fit about $${answers.budget} a week`}
+        </Text>
+      ) : null}
       <View style={{ marginTop: 24, paddingHorizontal: 12 }}>
         {MEALS.filter((m) => answers.meals.includes(m.slot)).map((m) => {
           const n = answers.perWeek[m.slot];
-          const set = (v: number) => update((a) => ({ perWeek: { ...a.perWeek, [m.slot]: v } }));
+          const set = (v: number) => update((a) => ({ perWeek: { ...a.perWeek, [m.slot]: v }, perWeekTouched: true }));
           return (
             <FieldRow
               key={m.slot}

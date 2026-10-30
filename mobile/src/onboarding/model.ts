@@ -35,6 +35,8 @@ export type Answers = {
   autoPlanDayTouched: boolean;
   /** Cook dinner for one more and eat it for the next day's lunch (needs both slots). */
   leftoversForLunch: boolean;
+  /** The user changed recipes-per-week themselves, so stop suggesting counts. */
+  perWeekTouched: boolean;
   diets: DietKey[];
   allergies: AllergyKey[];
   /** Kept as text so fields can be empty. Per meal. */
@@ -51,6 +53,7 @@ export const initialAnswers: Answers = {
   autoPlanDay: 'SATURDAY',
   autoPlanDayTouched: false,
   leftoversForLunch: false,
+  perWeekTouched: false,
   diets: [],
   allergies: [],
   macros: { calories: '', protein: '', carbs: '', fat: '' },
@@ -186,6 +189,7 @@ export function fromPreferences(p: PreferencesResponse): Answers {
     autoPlanDay: p.autoPlanDay ?? dayBefore(p.planStartDay),
     autoPlanDayTouched: p.autoPlanDay != null && p.autoPlanDay !== dayBefore(p.planStartDay),
     leftoversForLunch: !!p.leftoversForLunch,
+    perWeekTouched: true,
     // Low Calorie / Low Carb aren't stored as labels; they show as picked when their target is set low.
     diets: DIETS.filter((d) =>
       d.dietaryLabel

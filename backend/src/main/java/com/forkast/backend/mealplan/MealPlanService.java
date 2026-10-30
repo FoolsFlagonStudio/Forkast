@@ -1,6 +1,7 @@
 package com.forkast.backend.mealplan;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -44,6 +45,9 @@ import com.forkast.backend.user.UserRepository;
  */
 @Service
 public class MealPlanService {
+
+    /** Plans drawn at most to bring the grocery list under budget (see build). */
+    static final int BUDGET_ATTEMPTS = 3;
 
     private final MealPlanRepository planRepository;
     private final UserRepository userRepository;
@@ -110,20 +114,33 @@ public class MealPlanService {
                 ? preferences.getWeeklyBudget()
                 : null;
 
-        PlanRequest request = new PlanRequest(weekStart, preferences.getMealSlots(),
-                Math.max(1, preferences.getHouseholdServingSize()), preferences.isLeftoversForLunch(),
-                preferences.isPrefersMealPrep(), budget, preferences.getMaxCaloriesPerMeal(),
-                preferences.getRepeatAvoidanceDays(), seed, List.of());
-        GeneratedPlan generated = generator.generate(request, loaded.options(), from);
+        // The generator fits the budget on what the meals use, but the grocery list buys
+        // whole packages, which costs more. When the list comes in over budget, aim
+        // lower by that ratio and draw again (same seed), up to BUDGET_ATTEMPTS times.
+        BigDecimal target = budget;
+        MealPlan plan = null;
+        for (int attempt = 0; attempt < BUDGET_ATTEMPTS; attempt++) {
+            PlanRequest request = new PlanRequest(weekStart, preferences.getMealSlots(),
+                    Math.max(1, preferences.getHouseholdServingSize()), preferences.isLeftoversForLunch(),
+                    preferences.isPrefersMealPrep(), target, preferences.getMaxCaloriesPerMeal(),
+                    preferences.getRepeatAvoidanceDays(), seed, List.of());
+            GeneratedPlan generated = generator.generate(request, loaded.options(), from);
 
-        MealPlan plan = new MealPlan(user, weekStart, budget, source);
-        plan.setMealPrepMode(preferences.isPrefersMealPrep());
-        plan.recordGeneration(seed, Instant.now(clock));
-        for (GeneratedPlan.Pick pick : generated.picks()) {
-            addSelection(plan, pick, loaded.recipes());
+            plan = new MealPlan(user, weekStart, budget, source);
+            plan.setMealPrepMode(preferences.isPrefersMealPrep());
+            plan.recordGeneration(seed, Instant.now(clock));
+            for (GeneratedPlan.Pick pick : generated.picks()) {
+                addSelection(plan, pick, loaded.recipes());
+            }
+            plan.setCosts(generated.usageCost(), null, generated.openMeals());
+            groceryListService.rebuild(plan); // sets the grocery cost and over-budget flag
+
+            BigDecimal groceries = plan.getGroceryCost();
+            if (budget == null || groceries == null || groceries.compareTo(budget) <= 0 || groceries.signum() == 0) {
+                break;
+            }
+            target = target.multiply(budget).divide(groceries, 2, RoundingMode.HALF_UP);
         }
-        plan.setCosts(generated.usageCost(), null, generated.openMeals());
-        groceryListService.rebuild(plan); // sets the grocery cost and over-budget flag
         return plan;
     }
 
