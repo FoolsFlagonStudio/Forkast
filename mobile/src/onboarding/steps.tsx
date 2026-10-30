@@ -103,7 +103,7 @@ export function Household({ answers, update }: StepProps) {
     <View style={{ alignItems: 'center' }}>
       <View style={styles.stepperRow}>
         <StepButton kind="minus" label="Fewer people" disabled={n <= HOUSEHOLD.min} onPress={() => update({ household: n - 1 })} />
-        <Text variant="display" color="heading" style={[styles.bigNumber, { minWidth: 120 }]} accessibilityLiveRegion="polite">
+        <Text variant="display" color="heading" style={[styles.bigNumber, bigNumberSize(String(n)), { minWidth: 120 }]} accessibilityLiveRegion="polite">
           {n}
         </Text>
         <StepButton kind="plus" label="More people" disabled={n >= HOUSEHOLD.max} onPress={() => update({ household: n + 1 })} />
@@ -366,9 +366,9 @@ export function Review({ answers, onEdit }: { answers: Answers; onEdit: (step: S
   );
 }
 
-// Sized by character count instead of adjustsFontSizeToFit, which on iOS kept short
-// amounts at full size (the "$" clipped at the top) and swapped in the system font.
-// Line height leaves room for the "$" stroke above the digits.
+// Big numbers (budget, household). Sized by character count instead of
+// adjustsFontSizeToFit, which on iOS swapped in the system font. The display style's
+// 140/150 clipped Poppins' tall digits and the "$" on iOS, so line height is 1.3x.
 function bigNumberSize(text: string) {
   const fontSize = text.length <= 3 ? 112 : text.length === 4 ? 100 : 82;
   return { fontSize, lineHeight: Math.round(fontSize * 1.3) };
