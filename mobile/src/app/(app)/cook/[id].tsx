@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Vibration, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useKeepAwake } from 'expo-keep-awake';
@@ -11,6 +11,7 @@ import { ErrorNote, Loading, tap } from '@/components/app/ui';
 import { Button } from '@/components/Button';
 import { Text } from '@/components/Text';
 import { ingredientText } from '@/lib/format';
+import { cancelTimerAlert, scheduleTimerAlert } from '@/lib/timerAlerts';
 import { Icon } from '@/theme/icons';
 import { fontFamily } from '@/theme/fonts';
 import { useTheme } from '@/theme/themeContext';
@@ -41,6 +42,7 @@ export default function CookMode() {
   const [step, setStep] = useState(0);
   const [done, setDone] = useState(false);
   const [showIngredients, setShowIngredients] = useState(false);
+  const timers = useStepTimers(recipe?.name ?? '');
 
   useEffect(() => {
     recipesApi
@@ -85,8 +87,22 @@ export default function CookMode() {
         <Text variant="body" color="text" style={styles.stepText} accessibilityLiveRegion="polite">
           {current.text}
         </Text>
-        <StepTimer key={step} seconds={stepTimerSeconds(current.text)} />
+        <StepTimer seconds={stepTimerSeconds(current.text)} state={timers.get(step, stepTimerSeconds(current.text))} onStart={() => timers.start(step, stepTimerSeconds(current.text))} onPause={() => timers.pause(step)} onReset={() => timers.reset(step)} />
       </ScrollView>
+
+      {/* Timers left running on other steps keep counting; tap one to go back to it. */}
+      {timers.others(step).length ? (
+        <View style={styles.otherTimers}>
+          {timers.others(step).map((t) => (
+            <Pressable key={t.step} onPress={() => setStep(t.step)} accessibilityRole="button" accessibilityLabel={`Step ${t.step + 1} timer, ${t.left === 0 ? "time's up" : clock(t.left)}. Go to step`} style={[styles.otherTimer, { backgroundColor: t.left === 0 ? colors.danger : colors.primary }]}>
+              <Icon.resetTimer size={16} color={t.left === 0 ? colors.background : colors.onAccent} strokeWidth={2} />
+              <Text variant="label" style={{ color: t.left === 0 ? colors.background : colors.onAccent }}>
+                Step {t.step + 1} · {t.left === 0 ? "Time's up" : clock(t.left)}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
 
       <View style={styles.footer}>
         <Pressable onPress={() => setStep((s) => s - 1)} disabled={step === 0} hitSlop={12} accessibilityRole="button" accessibilityLabel="Previous step" style={{ opacity: step === 0 ? 0.3 : 1 }}>
@@ -110,38 +126,118 @@ export default function CookMode() {
   );
 }
 
-/** Countdown for steps that mention a time. Based on the clock, so it stays right if the app is backgrounded. */
-function StepTimer({ seconds }: { seconds: number | null }) {
-  const { colors } = useTheme();
-  const [left, setLeft] = useState(seconds ?? 0);
-  const [endsAt, setEndsAt] = useState<number | null>(null);
-  const buzzed = useRef(false);
+type TimerState = { left: number; endsAt: number | null; alertId: string | null };
 
+/**
+ * Every step's timer, owned by the screen so a running timer keeps going when you
+ * move to another step. Based on the clock, so it stays right while the app is in
+ * the background, and each running timer schedules a notification for when it ends.
+ */
+function useStepTimers(recipeName: string) {
+  const [timers, setTimers] = useState<Record<number, TimerState>>({});
+  const [, setTick] = useState(0);
+  const buzzed = useRef(new Set<number>());
+  const latest = useRef(timers);
   useEffect(() => {
-    if (endsAt == null) return;
+    latest.current = timers;
+  });
+  const running = Object.values(timers).some((t) => t.endsAt != null);
+
+  // Tick while anything is running; finished timers stop and buzz once.
+  useEffect(() => {
+    if (!running) return;
     const t = setInterval(() => {
-      const remaining = Math.max(0, Math.round((endsAt - Date.now()) / 1000));
-      setLeft(remaining);
-      if (remaining === 0) {
-        setEndsAt(null);
-        if (!buzzed.current && Platform.OS !== 'web') Vibration.vibrate([0, 400, 200, 400]);
-        buzzed.current = true;
-      }
+      setTick((n) => n + 1);
+      const now = Date.now();
+      const finished = Object.entries(latest.current).filter(([, v]) => v.endsAt != null && v.endsAt <= now);
+      if (!finished.length) return;
+      setTimers((all) => {
+        const next = { ...all };
+        for (const [k] of finished) next[Number(k)] = { left: 0, endsAt: null, alertId: null };
+        return next;
+      });
+      if (finished.some(([k]) => !buzzed.current.has(Number(k))) && Platform.OS !== 'web') Vibration.vibrate([0, 400, 200, 400]);
+      finished.forEach(([k]) => buzzed.current.add(Number(k)));
     }, 250);
     return () => clearInterval(t);
-  }, [endsAt]);
+  }, [running]);
 
+  // Leaving cook mode cancels any alerts still pending.
+  useEffect(() => () => Object.values(latest.current).forEach((t) => cancelTimerAlert(t.alertId)), []);
+
+  const leftOf = (t: TimerState) => (t.endsAt == null ? t.left : Math.max(0, Math.round((t.endsAt - Date.now()) / 1000)));
+
+  const start = useCallback(
+    (step: number, seconds: number | null) => {
+      if (!seconds) return;
+      const cur = latest.current[step];
+      const from = !cur || cur.left === 0 ? seconds : cur.left;
+      const endsAt = Date.now() + from * 1000;
+      buzzed.current.delete(step);
+      setTimers((all) => ({ ...all, [step]: { left: from, endsAt, alertId: null } }));
+      scheduleTimerAlert(endsAt, recipeName, step).then((alertId) => {
+        // Paused or reset before the alert was scheduled: cancel it straight away.
+        if (latest.current[step]?.endsAt !== endsAt) return cancelTimerAlert(alertId);
+        setTimers((all) => ({ ...all, [step]: { ...all[step], alertId } }));
+      });
+    },
+    [recipeName],
+  );
+
+  const stop = useCallback((step: number, reset: boolean) => {
+    const cur = latest.current[step];
+    if (!cur) return;
+    cancelTimerAlert(cur.alertId);
+    buzzed.current.delete(step);
+    setTimers((all) => {
+      const next = { ...all };
+      if (reset) delete next[step];
+      else next[step] = { left: leftOf(cur), endsAt: null, alertId: null };
+      return next;
+    });
+  }, []);
+
+  return {
+    get: (step: number, seconds: number | null) => {
+      const t = timers[step];
+      return t ? { left: leftOf(t), running: t.endsAt != null } : { left: seconds ?? 0, running: false };
+    },
+    start,
+    pause: (step: number) => stop(step, false),
+    reset: (step: number) => stop(step, true),
+    /** Timers on other steps that are running or have just finished. */
+    others: (step: number) =>
+      Object.entries(timers)
+        .map(([k, t]) => ({ step: Number(k), left: leftOf(t), running: t.endsAt != null }))
+        .filter((t) => t.step !== step && (t.running || t.left === 0))
+        .sort((a, b) => a.step - b.step),
+  };
+}
+
+/** Countdown for steps that mention a time. State lives in useStepTimers. */
+function StepTimer({
+  seconds,
+  state,
+  onStart,
+  onPause,
+  onReset,
+}: {
+  seconds: number | null;
+  state: { left: number; running: boolean };
+  onStart: () => void;
+  onPause: () => void;
+  onReset: () => void;
+}) {
+  const { colors } = useTheme();
   if (!seconds) return null;
-  const running = endsAt != null;
+  const { left, running } = state;
 
   return (
     <View style={styles.timer}>
       <Pressable
         onPress={() => {
           tap();
-          setEndsAt(null);
-          setLeft(seconds);
-          buzzed.current = false;
+          onReset();
         }}
         accessibilityRole="button"
         accessibilityLabel="Reset timer"
@@ -162,14 +258,8 @@ function StepTimer({ seconds }: { seconds: number | null }) {
       <Pressable
         onPress={() => {
           tap();
-          if (running) {
-            setEndsAt(null);
-          } else {
-            const from = left === 0 ? seconds : left;
-            setLeft(from);
-            buzzed.current = false;
-            setEndsAt(Date.now() + from * 1000);
-          }
+          if (running) onPause();
+          else onStart();
         }}
         accessibilityRole="button"
         accessibilityLabel={running ? 'Pause timer' : 'Start timer'}
@@ -247,6 +337,8 @@ const styles = StyleSheet.create({
   stepText: { textAlign: 'center', fontSize: 19, lineHeight: 28 },
   timer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 22, marginTop: 40 },
   timerButton: { width: 56, height: 52, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  otherTimers: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginBottom: 14 },
+  otherTimer: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 32, borderRadius: 999 },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14 },
   done: { alignItems: 'center', justifyContent: 'center' },
   rate: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
