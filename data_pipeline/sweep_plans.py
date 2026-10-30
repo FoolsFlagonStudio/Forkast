@@ -2,10 +2,14 @@
 
 For every combination of planned meals (breakfast / lunch / dinner), recipes per week
 (1 to --max-count each) and household size, it generates real plans through the API with
-the budget set to $1. That makes the planner pick the cheapest week it can, so the grocery
-total is the floor for that setting: what it costs at the least. It writes every run to
+no budget pressure (a $100,000 budget), so the planner picks the way it normally does: the
+grocery total is what a typical week with that setting costs. It writes every run to
 sweep_results.csv, then picks, for each budget, the setting with the most recipes (the most
-variety) whose floor still leaves headroom under that budget. Those go to
+variety) whose typical week still leaves headroom under that budget.
+
+(--mode floor sets the budget to $1 instead. That turned out to be a poor guide: squeezed,
+the planner leans on recipes whose prices are incomplete or that are mostly pantry
+staples, so every setting looks nearly free.) Those go to
 plan_defaults.json, which onboarding uses to prefill "How many recipes would you like?".
 
 It needs a verified app account that's only used for this: its preferences are
@@ -17,7 +21,8 @@ overwritten and it makes and deletes plans for a week in 2031.
     python sweep_plans.py --from-csv             # re-pick defaults from the last results
     python sweep_plans.py --write-app            # also copy plan_defaults.json into the app
 
-Each run takes a second or two; the full sweep is about 1,300 runs.
+Each run takes a few seconds; the full sweep is about 1,300 runs (typical mode is faster
+than floor mode, which re-plans up to 3 times per run to chase the $1 budget).
 """
 import argparse
 import csv
@@ -32,7 +37,9 @@ import requests
 
 from common import API_URL, PIPELINE_DIR, require_env
 
-RESULTS = PIPELINE_DIR / "sweep_results.csv"
+def results_file(mode):
+    """Each mode keeps its own runs (the first sweeps were floor mode, in sweep_results.csv)."""
+    return PIPELINE_DIR / ("sweep_results.csv" if mode == "floor" else f"sweep_results_{mode}.csv")
 DEFAULTS = PIPELINE_DIR / "plan_defaults.json"
 APP_DEFAULTS = PIPELINE_DIR.parent / "mobile" / "src" / "onboarding" / "plan-defaults.json"
 
@@ -91,8 +98,11 @@ def clear_week(api):
             api.call("DELETE", f"/api/meal-plans/{plan['id']}")
 
 
-def run_one(api, counts, household, leftovers):
-    body = preferences(counts, household, 1.00, leftovers)
+BUDGET_FOR_MODE = {"typical": 100000.00, "floor": 1.00}
+
+
+def run_one(api, counts, household, leftovers, mode):
+    body = preferences(counts, household, BUDGET_FOR_MODE[mode], leftovers)
     try:
         api.call("PUT", "/api/users/me/preferences", body)
     except RuntimeError as e:
@@ -125,29 +135,32 @@ def sweep(args):
     todo = [(c, h, s) for c in combos(args.max_count) for h in args.households for s in range(args.seeds)]
     print(f"{len(todo)} plans to generate")
     started = time.time()
-    with RESULTS.open("w", newline="") as f:
+    with results_file(args.mode).open("w", newline="") as f:
         out = csv.writer(f)
-        out.writerow(["meals", "breakfast", "lunch", "dinner", "household", "leftovers", "seed", "usage", "grocery", "open", "recipes"])
+        out.writerow(["meals", "breakfast", "lunch", "dinner", "household", "leftovers", "mode", "seed", "usage", "grocery", "open", "recipes"])
         for i, (counts, household, seed) in enumerate(todo, 1):
             try:
-                r = run_one(api, counts, household, args.leftovers)
+                r = run_one(api, counts, household, args.leftovers, args.mode)
             except RuntimeError as e:
                 print(f"  skipped {counts} x{household}: {e}")
                 continue
             key = "".join(LETTER[s] for s in SLOTS if s in counts)
             out.writerow([key, counts.get("BREAKFAST", 0), counts.get("LUNCH", 0), counts.get("DINNER", 0), household,
-                          args.leftovers, seed, r["usage"], r["grocery"], r["open"], r["recipes"]])
+                          args.leftovers, args.mode, seed, r["usage"], r["grocery"], r["open"], r["recipes"]])
             f.flush()
             if i % 25 == 0:
                 left = (time.time() - started) / i * (len(todo) - i)
                 print(f"  {i}/{len(todo)}, about {left / 60:.0f} min left")
 
 
-def pick_defaults(headroom):
-    """For each meal set, household and budget: the most recipes whose cheapest week fits."""
-    rows = list(csv.DictReader(RESULTS.open()))
+def pick_defaults(headroom, mode):
+    """For each meal set, household and budget: the most recipes whose week (typical or cheapest) fits."""
+    path = results_file(mode)
+    if not path.exists():
+        sys.exit(f"No {path.name} yet; run the sweep with --mode {mode} first.")
+    rows = [r for r in csv.DictReader(path.open()) if r.get("mode", "floor") == mode]
     if not rows:
-        sys.exit(f"No results in {RESULTS}; run the sweep first.")
+        sys.exit(f"No {mode} results in {path.name}; run the sweep with --mode {mode} first.")
     by_setting = {}
     for r in rows:
         k = (r["meals"], int(r["household"]), int(r["breakfast"]), int(r["lunch"]), int(r["dinner"]))
@@ -177,7 +190,8 @@ def pick_defaults(headroom):
         defaults.setdefault(meals, {})[str(household)] = table
 
     return {
-        "note": "Made by data_pipeline/sweep_plans.py. floor = the cheapest grocery total the planner found for those counts.",
+        "note": f"Made by data_pipeline/sweep_plans.py ({mode} mode). floor = the mean grocery total for those counts.",
+        "mode": mode,
         "generatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "headroom": headroom,
         "defaults": defaults,
@@ -190,6 +204,8 @@ def main():
     p.add_argument("--max-count", type=int, default=5, help="most recipes per week to try for each meal (1-7)")
     p.add_argument("--seeds", type=int, default=2, help="plans per setting (the planner draws at random)")
     p.add_argument("--leftovers", action="store_true", help="sweep with leftovers for lunch on")
+    p.add_argument("--mode", choices=["typical", "floor"], default="typical",
+                   help="typical: no budget pressure (what a normal week costs); floor: a $1 budget (the cheapest week)")
     p.add_argument("--headroom", type=float, default=0.85,
                    help="a setting fits a budget when its cheapest week is under budget x this")
     p.add_argument("--from-csv", action="store_true", help="skip the sweep; pick defaults from sweep_results.csv")
@@ -198,7 +214,7 @@ def main():
 
     if not args.from_csv:
         sweep(args)
-    result = pick_defaults(args.headroom)
+    result = pick_defaults(args.headroom, args.mode)
     DEFAULTS.write_text(json.dumps(result, indent=2))
     print(f"Wrote {DEFAULTS}")
     if args.write_app:

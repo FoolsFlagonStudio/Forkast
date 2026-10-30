@@ -3,4 +3,4 @@
 cache/
 logs/
 __pycache__/
-sweep_results.csv
+sweep_results*.csv
