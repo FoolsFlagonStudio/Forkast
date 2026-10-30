@@ -6,6 +6,7 @@ import { authApi } from '@/api/auth';
 import { useAuth } from '@/auth/AuthProvider';
 import { collectErrors, validate } from '@/auth/validation';
 import { AuthScreen } from '@/components/auth/AuthScreen';
+import { PasswordRules } from '@/components/auth/PasswordRules';
 import { Fields, FormError, InlineLink } from '@/components/auth/parts';
 import { Button } from '@/components/Button';
 import { Text } from '@/components/Text';
@@ -94,6 +95,7 @@ export default function ResetPassword() {
           returnKeyType="next"
           onSubmitEditing={() => confirmRef.current?.focus()}
         />
+        <PasswordRules value={password} />
         <TextField
           ref={confirmRef}
           label="Confirm New Password"

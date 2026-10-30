@@ -5,6 +5,7 @@ import { ApiError } from '@/api/client';
 import { authApi } from '@/api/auth';
 import { collectErrors, validate } from '@/auth/validation';
 import { AuthScreen } from '@/components/auth/AuthScreen';
+import { PasswordRules } from '@/components/auth/PasswordRules';
 import { Fields, FooterLink, FormError, InlineLink, SocialSignIn } from '@/components/auth/parts';
 import { Button } from '@/components/Button';
 import { Checkbox } from '@/components/Checkbox';
@@ -119,6 +120,7 @@ export default function SignUp() {
           returnKeyType="next"
           onSubmitEditing={() => confirmRef.current?.focus()}
         />
+        <PasswordRules value={password} />
         <TextField
           ref={confirmRef}
           label="Password Confirm"

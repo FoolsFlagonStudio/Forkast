@@ -6,6 +6,7 @@ import { useAuth } from '@/auth/AuthProvider';
 import { collectErrors, validate } from '@/auth/validation';
 import { FormScreen } from '@/components/app/Form';
 import { TextField } from '@/components/TextField';
+import { PasswordRules } from '@/components/auth/PasswordRules';
 
 export default function ChangePassword() {
   const { authedRequest, signIn } = useAuth();
@@ -38,9 +39,10 @@ export default function ChangePassword() {
   }
 
   return (
-    <FormScreen title="Password" intro="Use at least 8 characters." submit="Change password" onSubmit={submit} loading={loading} error={error}>
+    <FormScreen title="Password" intro="Use 8 or more characters with upper and lowercase letters, a number and a symbol." submit="Change password" onSubmit={submit} loading={loading} error={error}>
       <TextField label="Current Password" password value={current} onChangeText={setCurrent} error={errors.current} autoComplete="current-password" textContentType="password" />
       <TextField label="New Password" password value={next} onChangeText={setNext} error={errors.next} autoComplete="new-password" textContentType="newPassword" />
+      <PasswordRules value={next} />
       <TextField label="Confirm New Password" password value={confirm} onChangeText={setConfirm} error={errors.confirm} autoComplete="new-password" textContentType="newPassword" onSubmitEditing={submit} />
     </FormScreen>
   );
