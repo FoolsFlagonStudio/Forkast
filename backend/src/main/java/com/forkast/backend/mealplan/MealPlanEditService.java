@@ -57,7 +57,8 @@ public class MealPlanEditService {
     // if the new
     // main wants one; a main that's a whole meal drops it. setSide and removeSide
     // change it
-    // directly.
+    // directly, and a side set that way is the user's: it stays through swaps and
+    // regenerate.
 
     private static final int SUGGESTIONS = 5;
 
@@ -199,6 +200,9 @@ public class MealPlanEditService {
             // recipe
             PlanSelection selection = selectionAt(edit.plan, pick.run());
             assign(selection, edit.loaded.recipes().get(pick.recipe().id()), pick);
+            if (selection.isSideChosen()) {
+                continue; // the user's side stays with whatever main comes up
+            }
             if (pick.side() != null) {
                 selection.assignSide(edit.loaded.recipes().get(pick.side().recipe().id()),
                         pick.side().portionMultiplier(), pick.side().cost());
@@ -228,7 +232,7 @@ public class MealPlanEditService {
                 throw ApiException.conflict("That recipe is already a main in this plan.");
             }
             GeneratedPlan.Side side = generator.priceSide(run, edit.loaded.optionOf().apply(recipe), household(edit));
-            selection.assignSide(recipe, side.portionMultiplier(), side.cost());
+            selection.chooseSide(recipe, side.portionMultiplier(), side.cost());
         } else {
             Set<UUID> exclude = recipeIdsIn(edit.plan);
             if (selection.getSideRecipe() != null) {
@@ -239,7 +243,8 @@ public class MealPlanEditService {
                     .drawSide(run, edit.loaded.options(), exclude, sideIdsIn(edit.plan), room(edit), household(edit),
                             new Random(ThreadLocalRandom.current().nextLong()))
                     .orElseThrow(() -> ApiException.conflict("No side fits this meal."));
-            selection.assignSide(edit.loaded.recipes().get(side.recipe().id()), side.portionMultiplier(),
+            // asked for a side, so it's theirs even though we picked which one
+            selection.chooseSide(edit.loaded.recipes().get(side.recipe().id()), side.portionMultiplier(),
                     side.cost());
         }
         return finish(edit);
@@ -426,11 +431,14 @@ public class MealPlanEditService {
     }
 
     /**
-     * After the main changes: a main that's a whole meal drops its side; one that
-     * wants a side
+     * After the main changes: a side the user picked stays; otherwise a main
+     * that's a whole meal drops its side, and one that wants a side
      * keeps the one it has, or gets one drawn within what's left of the budget.
      */
     private void keepOrDrawSide(Edit edit, PlanSelection selection, SlotRun run, RecipeOption main) {
+        if (selection.isSideChosen()) {
+            return; // the user picked it: it stays whatever the main is
+        }
         if (!PlanGenerator.wantsSide(run, main)) {
             selection.clearSide();
             return;

@@ -34,6 +34,8 @@ export type PlannedMeal = {
   started: boolean;
   /** Cooked alongside the main (a slaw with roast chicken), or null. */
   side: RecipeSummary | null;
+  /** You picked the side, so it stays when the main is swapped or regenerated. */
+  sideChosen?: boolean;
 };
 
 export type MealPlanSummary = {
@@ -99,6 +101,7 @@ type BSelection = {
   recipe: BPlanRecipe;
   side?: BPlanRecipe | null;
   sideEstimatedCost?: Num;
+  sideChosen?: boolean;
 };
 type BMeal = { slot: MealSlot; selectionId: string; leftover: boolean };
 type BPlan = {
@@ -176,6 +179,7 @@ export function fromBackendPlan(p: BPlan, today = todayISO()): MealPlan {
           locked: s.locked,
           started: s.startDate <= today,
           side: s.side ? planRecipe(s.side) : null,
+          sideChosen: !!s.sideChosen,
         },
       ];
     }),

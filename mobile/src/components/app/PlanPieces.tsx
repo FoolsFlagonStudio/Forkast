@@ -256,7 +256,7 @@ export function SwapSheet({ visible, onClose, meals, initialTab, cheaperFirst }:
             <View style={[styles.sideNow, { backgroundColor: colors.surface }]}>
               <View style={{ flex: 1 }}>
                 <Text variant="label" color="subtle">
-                  {current.side ? 'Cooked with it now' : 'No side yet'}
+                  {current.side ? (current.sideChosen ? 'Your pick: stays if you swap the main' : 'Picked to go with it') : 'No side yet'}
                 </Text>
                 <Text variant="option" color="heading">
                   {current.side ? current.side.name : 'Pick one below, or let us choose'}

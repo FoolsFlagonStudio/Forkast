@@ -94,6 +94,10 @@ public class PlanSelection {
     @Column(name = "side_estimated_cost", precision = 10, scale = 2)
     private BigDecimal sideEstimatedCost;
 
+    /** The user picked this side, so it stays when the main changes */
+    @Column(name = "side_chosen", nullable = false)
+    private boolean sideChosen = false;
+
     // ---------- timestamps ----------
 
     @CreationTimestamp
@@ -174,12 +178,24 @@ public class PlanSelection {
         this.sideRecipe = requireNonNull(recipe, "side recipe");
         this.sidePortionMultiplier = requirePositive(portionMultiplier, "sidePortionMultiplier");
         this.sideEstimatedCost = estimatedCost;
+        this.sideChosen = false;
+    }
+
+    /** A side the user picked: kept when the main is swapped or regenerated. */
+    public void chooseSide(Recipe recipe, BigDecimal portionMultiplier, BigDecimal estimatedCost) {
+        assignSide(recipe, portionMultiplier, estimatedCost);
+        this.sideChosen = true;
     }
 
     public void clearSide() {
         this.sideRecipe = null;
         this.sidePortionMultiplier = null;
         this.sideEstimatedCost = null;
+        this.sideChosen = false;
+    }
+
+    public boolean isSideChosen() {
+        return sideRecipe != null && sideChosen;
     }
 
     /** The main's cost plus the side's. */

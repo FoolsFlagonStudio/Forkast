@@ -56,12 +56,13 @@ public record MealPlanDetailResponse(
 
         /**
          * estimatedCost is the main's; side and sideEstimatedCost are null when the
-         * main is a whole meal.
+         * main is a whole meal. sideChosen: the user picked the side, so it stays when
+         * the main changes.
          */
         public record Selection(UUID id, MealSlot slot, int position, LocalDate startDate, int daysCovered,
                         LocalDate lastMealDate, int servings, BigDecimal portionMultiplier, BigDecimal estimatedCost,
                         boolean locked, PlanRecipe recipe, PlanRecipe side, BigDecimal sidePortionMultiplier,
-                        BigDecimal sideEstimatedCost) {
+                        BigDecimal sideEstimatedCost, boolean sideChosen) {
 
                 static Selection from(PlanSelection s) {
                         return new Selection(s.getId(), s.getMealSlot(), s.getPosition(), s.getStartDate(),
@@ -70,7 +71,7 @@ public record MealPlanDetailResponse(
                                         s.getEstimatedCost(),
                                         s.isLocked(), PlanRecipe.from(s.getRecipe()),
                                         s.getSideRecipe() == null ? null : PlanRecipe.from(s.getSideRecipe()),
-                                        s.getSidePortionMultiplier(), s.getSideEstimatedCost());
+                                        s.getSidePortionMultiplier(), s.getSideEstimatedCost(), s.isSideChosen());
                 }
         }
 
