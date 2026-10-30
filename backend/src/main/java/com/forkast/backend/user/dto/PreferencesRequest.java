@@ -18,17 +18,18 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 
 public record PreferencesRequest(
-        @NotNull @DecimalMin("1.00") @Digits(integer = 8, fraction = 2) BigDecimal weeklyBudget,
-        @NotNull @Min(1) @Max(20) Integer householdServingSize,
-        @Positive Integer maxCaloriesPerMeal,
-        @Positive Integer maxCaloriesPerDay,
-        @PositiveOrZero Integer proteinTargetGrams,
-        @PositiveOrZero Integer carbsTargetGrams,
-        @PositiveOrZero Integer fatTargetGrams,
-        @NotNull @Min(0) @Max(60) Integer repeatAvoidanceDays,
-        @NotNull DayOfWeek planStartDay,
-        Boolean prefersMealPrep,
-        Set<UUID> dietaryLabelIds,
-        @NotEmpty Map<MealSlot, @NotNull @Min(1) @Max(7) Integer> mealSlots) {
+                @NotNull @DecimalMin("1.00") @Digits(integer = 8, fraction = 2) BigDecimal weeklyBudget,
+                @NotNull @Min(1) @Max(20) Integer householdServingSize,
+                @Positive Integer maxCaloriesPerMeal,
+                @Positive Integer maxCaloriesPerDay,
+                @PositiveOrZero Integer proteinTargetGrams,
+                @PositiveOrZero Integer carbsTargetGrams,
+                @PositiveOrZero Integer fatTargetGrams,
+                @NotNull @Min(0) @Max(60) Integer repeatAvoidanceDays,
+                @NotNull DayOfWeek planStartDay,
+                Boolean prefersMealPrep,
+                Boolean leftoversForLunch,
+                Set<UUID> dietaryLabelIds,
+                @NotEmpty Map<MealSlot, @NotNull @Min(1) @Max(7) Integer> mealSlots) {
 
 }

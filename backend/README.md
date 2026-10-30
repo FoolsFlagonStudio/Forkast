@@ -2,7 +2,7 @@
 
 Spring Boot API for Forkast. It owns all data access: recipes, ingredient matching, nutrition, pricing, dietary labels, meal plan generation, and grocery lists.
 
-> **Status:** the data model, Flyway migrations (V1 to V8), authentication, user preferences, the recipe ingestion pipeline, recipe browsing, and pricing are complete. Live endpoints: `GET /api/health`, `GET /api/dietary-labels`, the 11 `/api/auth/*` routes, `GET`/`PATCH`/`DELETE /api/users/me`, `GET`/`POST`/`PUT /api/users/me/preferences`, recipe search, detail and favorites (with cost), the 5 `/api/admin/*` ingestion routes and the 4 `/api/admin/prices/*` routes. A scheduled job refreshes Kroger prices weekly. The meal plan generator is next.
+> **Status:** the data model, Flyway migrations (V1 to V10), authentication, user preferences, the recipe ingestion pipeline, recipe browsing, pricing and meal planning are complete. Live endpoints: `GET /api/health`, `GET /api/dietary-labels`, the 11 `/api/auth/*` routes, `GET`/`PATCH`/`DELETE /api/users/me`, `GET`/`POST`/`PUT /api/users/me/preferences`, recipe search, detail and favorites (with cost), the 9 `/api/meal-plans/*` routes, the 2 grocery list routes, the 5 `/api/admin/*` ingestion routes and the 4 `/api/admin/prices/*` routes. Scheduled jobs refresh Kroger prices weekly and make each user's plan at 11pm the night before their plan start day. Next: a larger recipe scrape and the catalog revisit.
 
 ## Local Setup
 
@@ -79,16 +79,18 @@ On startup, Flyway applies any pending migrations to an empty database, so no ma
 
 The schema is defined by versioned SQL migrations in `src/main/resources/db/migration/`:
 
-| Migration                            | Contents                                                                                                                                                                                                                                                                                                                                |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `V1__initial_schema.sql`             | All 16 domain tables, constraints, indexes, and foreign keys                                                                                                                                                                                                                                                                            |
-| `V2__auth.sql`                       | `users.is_verified`, `password_changed_at`, `last_login_at`; `refresh_tokens` and `auth_codes` tables                                                                                                                                                                                                                                   |
-| `V3__cascade_user_deletes.sql`       | Foreign keys to `users` (and their children) cascade on delete, for account deletion                                                                                                                                                                                                                                                    |
-| `V4__seed_dietary_labels.sql`        | Inserts the 10 starter dietary labels                                                                                                                                                                                                                                                                                                   |
-| `V5__preferences_meal_slots.sql`     | `user_preferences.plan_start_day` and `prefers_meal_prep`; `user_meal_slots` table                                                                                                                                                                                                                                                      |
-| `V6__recipe_pipeline.sql`            | `pg_trgm` (in the `extensions` schema); recipe source, image, category, cuisine, keywords, meal-prep score and per-serving nutrition columns; `ingredient_aliases` and `ingredient_tags` tables; trigram indexes on ingredient names and aliases; `parsed_name` and `match_score` on `recipe_ingredients`                               |
-| `V7__recipe_ingredient_position.sql` | `recipe_ingredients.position`, backfilled per recipe in insert order, so lines come back in the order the recipe lists them                                                                                                                                                                                                             |
-| `V8__pricing.sql`                    | `ingredient_products` table (which store product stands in for each ingredient); `KROGER`, `BLS`, `SEED` price sources (V1's unnamed check is found and replaced); `promo_price`, `external_id`, `size_text`, `sold_by`, `price_per_100g`, `price_per_item` on `ingredient_prices`; `cost_per_serving` and `cost_complete` on `recipes` |
+| Migration                            | Contents                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `V1__initial_schema.sql`             | All 16 domain tables, constraints, indexes, and foreign keys                                                                                                                                                                                                                                                                                                                   |
+| `V2__auth.sql`                       | `users.is_verified`, `password_changed_at`, `last_login_at`; `refresh_tokens` and `auth_codes` tables                                                                                                                                                                                                                                                                          |
+| `V3__cascade_user_deletes.sql`       | Foreign keys to `users` (and their children) cascade on delete, for account deletion                                                                                                                                                                                                                                                                                           |
+| `V4__seed_dietary_labels.sql`        | Inserts the 10 starter dietary labels                                                                                                                                                                                                                                                                                                                                          |
+| `V5__preferences_meal_slots.sql`     | `user_preferences.plan_start_day` and `prefers_meal_prep`; `user_meal_slots` table                                                                                                                                                                                                                                                                                             |
+| `V6__recipe_pipeline.sql`            | `pg_trgm` (in the `extensions` schema); recipe source, image, category, cuisine, keywords, meal-prep score and per-serving nutrition columns; `ingredient_aliases` and `ingredient_tags` tables; trigram indexes on ingredient names and aliases; `parsed_name` and `match_score` on `recipe_ingredients`                                                                      |
+| `V7__recipe_ingredient_position.sql` | `recipe_ingredients.position`, backfilled per recipe in insert order, so lines come back in the order the recipe lists them                                                                                                                                                                                                                                                    |
+| `V8__pricing.sql`                    | `ingredient_products` table (which store product stands in for each ingredient); `KROGER`, `BLS`, `SEED` price sources (V1's unnamed check is found and replaced); `promo_price`, `external_id`, `size_text`, `sold_by`, `price_per_100g`, `price_per_item` on `ingredient_prices`; `cost_per_serving` and `cost_complete` on `recipes`                                        |
+| `V9__meal_plans.sql`                 | `plan_selections` table; `planned_meals` rebuilt around dates and selections; generation seed, usage and grocery cost, over-budget flag, open meals, generated-at and source on `meal_plans`; package, pantry and need-to-buy columns on `grocery_list_items`; slot scores on `recipes`; `ingredients.pantry_staple`; `user_preferences.leftovers_for_lunch`; `users.timezone` |
+| `V10__plan_history.sql`              | `meal_plans.history_recorded_at`, so the weekly job writes each ended plan's recipe history once                                                                                                                                                                                                                                                                               |
 
 On startup, Flyway runs any migrations not yet recorded in the `flyway_schema_history` table, in version order. Hibernate then runs with `ddl-auto=validate` and refuses to start if an entity doesn't match the schema.
 
@@ -120,11 +122,11 @@ src/main/java/com/forkast/backend/
 ├── common/       ValidationUtils, TokenHasher, MessageResponse, PageResponse,
 │                 exception/ApiException, exception/GlobalExceptionHandler
 ├── config/       SecurityConfig, SecurityErrorHandler, JwtConfig,
-│                 AdminProperties, ApiKeyAuthenticationFilter
+│                 AdminProperties, ApiKeyAuthenticationFilter, ClockConfig
 ├── diet/         DietaryLabel, DietaryLabelRepository, DietaryLabelResponse,
 │                 DietaryLabelController
 ├── favorite/     Favorite, FavoriteRepository, FavoriteService, FavoriteController
-├── history/      RecipeHistory, RecipeHistoryRepository
+├── history/      RecipeHistory, RecipeHistoryRepository, LastServedAt
 ├── ingest/       Recipe pipeline: IngredientLineParser, ParsedLine, Unit,
 │                 UnitConverter, NutritionCalculator, DietaryLabelClassifier,
 │                 MealPrepClassifier, RecipeEnricher, RecipeImporter,
@@ -136,7 +138,16 @@ src/main/java/com/forkast/backend/
 │                 IngredientMatcher, IngredientNames, MatchResult, SimilarityHit,
 │                 IngredientRepository, IngredientAliasRepository,
 │                 IngredientPriceRepository, IngredientProductRepository
-├── mealplan/     MealPlan, PlannedMeal, GroceryListItem, MealSlot, MealPlanRepository
+├── mealplan/     MealPlan, PlanSelection, PlannedMeal, GroceryListItem, MealSlot,
+│                 PlanSource, MealPlanRepository, MealPlanService,
+│                 MealPlanEditService, MealPlanController, RecipeOptionLoader,
+│                 PlanWeeks, LastServed, dto/
+│   ├── planner/  PlanGenerator, WeekLayout, CandidateScorer, PlannerProperties,
+│   │             PlanRequest, RecipeOption, GeneratedPlan, SlotRun, WeekShape,
+│   │             Candidate (plain classes, no database)
+│   ├── grocery/  GroceryListBuilder, GroceryPriceLoader, GroceryListService,
+│   │             GroceryListController, GroceryListItemRepository, request/response
+│   └── weekly/   WeeklyPlanJob, WeeklyPlanWorker, PlanTiming
 ├── email/        EmailService, LoggingEmailService (local profile)
 ├── pricing/      PackageSizeParser, UnitPriceCalculator, PriceResolver,
 │                 CurrentPriceService, RecipeCostCalculator, RecipeCostService,
@@ -167,7 +178,7 @@ Code is organized **by feature**, not by layer. Each package will hold its own e
 
 ## Data Model
 
-16 domain tables: 14 entity classes plus 2 plain join tables (`user_dietary_restrictions`, `recipe_dietary_labels`). Auth adds 2 more (`refresh_tokens`, `auth_codes`), described under Authentication.
+17 domain tables: 15 entity classes plus 2 plain join tables (`user_dietary_restrictions`, `recipe_dietary_labels`). Auth adds 2 more (`refresh_tokens`, `auth_codes`), described under Authentication.
 
 ```mermaid
 erDiagram
@@ -184,8 +195,9 @@ erDiagram
     INGREDIENT ||--o{ INGREDIENT_PRICE : priced
     RECIPE ||--o{ FAVORITE : "favorited as"
     RECIPE ||--o{ RECIPE_HISTORY : "served as"
-    RECIPE ||--o{ PLANNED_MEAL : scheduled
-    MEAL_PLAN ||--o{ PLANNED_MEAL : includes
+    RECIPE ||--o{ PLAN_SELECTION : "chosen as"
+    MEAL_PLAN ||--o{ PLAN_SELECTION : includes
+    PLAN_SELECTION ||--o{ PLANNED_MEAL : "eaten as"
     MEAL_PLAN ||--o{ GROCERY_LIST_ITEM : generates
     INGREDIENT ||--o{ GROCERY_LIST_ITEM : "aggregated as"
 ```
@@ -199,7 +211,7 @@ erDiagram
 - **Enums are stored as strings** (`@Enumerated(EnumType.STRING)`), never ordinals.
 - **Money and quantities use `BigDecimal`**, never `double`.
 - **Request DTOs use wrapper types** (`Integer`, `Boolean`). Jackson 3 rejects a missing primitive with a generic "Failed to read request"; required fields use `@NotNull` instead.
-- **Parent-owned children** (steps, recipe ingredients, portions, planned meals, grocery items) use `cascade = ALL` + `orphanRemoval`, with `add`/`remove` helpers on the parent that keep both sides in sync. Child setters for the parent are package-private.
+- **Parent-owned children** (steps, recipe ingredients, portions, plan selections and their planned meals, grocery items) use `cascade = ALL` + `orphanRemoval`, with `add`/`remove` helpers on the parent that keep both sides in sync. Child setters for the parent are package-private.
 - **Unbounded or shared relationships are one-way.** `User` and `Recipe` have no collections of favorites, history, or plans, and `Ingredient` has no price collection; those are queried through repositories.
 - **Collection getters return unmodifiable views**, so changes go through helper methods.
 - **Historical records are immutable** (`IngredientPrice`, `Favorite`, `RecipeHistory`): no setters, `updatable = false` columns. A changed price is a new row.
@@ -208,18 +220,19 @@ erDiagram
 
 **User** (`users`)
 
-| Field                 | Type    | Notes                                                 |
-| --------------------- | ------- | ----------------------------------------------------- |
-| id                    | UUID    | PK                                                    |
-| firstName             | String  | not null                                              |
-| lastName              | String  | not null                                              |
-| email                 | String  | unique, not null, trimmed and lowercased              |
-| passwordHash          | String  | not null                                              |
-| premium               | boolean | column `is_premium`, not null, default false          |
-| verified              | boolean | column `is_verified`, not null, default false         |
-| passwordChangedAt     | Instant | nullable; access tokens issued before it are rejected |
-| lastLoginAt           | Instant | nullable                                              |
-| createdAt / updatedAt | Instant | automatic timestamps                                  |
+| Field                 | Type    | Notes                                                                                                     |
+| --------------------- | ------- | --------------------------------------------------------------------------------------------------------- |
+| id                    | UUID    | PK                                                                                                        |
+| firstName             | String  | not null                                                                                                  |
+| lastName              | String  | not null                                                                                                  |
+| email                 | String  | unique, not null, trimmed and lowercased                                                                  |
+| passwordHash          | String  | not null                                                                                                  |
+| premium               | boolean | column `is_premium`, not null, default false                                                              |
+| verified              | boolean | column `is_verified`, not null, default false                                                             |
+| passwordChangedAt     | Instant | nullable; access tokens issued before it are rejected                                                     |
+| lastLoginAt           | Instant | nullable                                                                                                  |
+| timezone              | String  | IANA name, not null, default `America/New_York`; validated by `ZoneId`; when "11pm" is for the weekly job |
+| createdAt / updatedAt | Instant | automatic timestamps                                                                                      |
 
 **UserPreferences** (`user_preferences`, 1:1 with User)
 
@@ -237,6 +250,7 @@ erDiagram
 | repeatAvoidanceDays   | int                     | not null, default 14; checked against RecipeHistory                                                     |
 | planStartDay          | DayOfWeek               | not null, default SUNDAY; first day of each meal plan                                                   |
 | prefersMealPrep       | boolean                 | not null, default false; raises the weight of recipes' meal-prep score                                  |
+| leftoversForLunch     | boolean                 | not null, default false; each dinner also covers the next day's lunch (needs a lunch slot)              |
 | mealSlots             | Map\<MealSlot, Integer> | `@ElementCollection` in `user_meal_slots`; distinct recipes per week, 1 to 7; a missing slot is skipped |
 | dietaryRestrictions   | Set\<DietaryLabel>      | M:N via `user_dietary_restrictions`                                                                     |
 | createdAt / updatedAt | Instant                 | automatic timestamps                                                                                    |
@@ -263,6 +277,7 @@ erDiagram
 | imageUrl, category, cuisine                                              | String                  | nullable, from the scrape                                                             |
 | keywords                                                                 | String (text)           | nullable, comma-separated                                                             |
 | mealPrepScore                                                            | int                     | 0 to 100, from `MealPrepClassifier`                                                   |
+| breakfastScore, lunchScore, dinnerScore                                  | int                     | 0 to 100, from `SlotClassifier`; a recipe can fill a slot at 50 or more               |
 | caloriesPerServing, proteinGPerServing, carbsGPerServing, fatGPerServing | BigDecimal(7,2)         | from `NutritionCalculator`; set together by `setNutrition`                            |
 | nutritionComplete                                                        | boolean                 | true only when every required line converted to grams                                 |
 | costPerServing                                                           | BigDecimal(8,2)         | estimated USD from `RecipeCostCalculator`; null when no line could be priced          |
@@ -309,6 +324,7 @@ Matching is done through `matchIngredient(ingredient, score)` (links and clears 
 | fatGPer100g           | BigDecimal(7,2)          | nullable                                                                                                                                                             |
 | portions              | List\<IngredientPortion> | ordered by gram weight                                                                                                                                               |
 | aliases               | Set\<IngredientAlias>    | other names that match exactly ("garlic cloves" for garlic); alias text is globally unique                                                                           |
+| pantryStaple          | boolean                  | salt, oils, vinegars, dried spices, flour, sugar, leaveners: the grocery list's "check your pantry" group, counted at usage cost                                     |
 | tags                  | Set\<IngredientTag>      | `@ElementCollection` in `ingredient_tags`: MEAT, POULTRY, FISH, SHELLFISH, DAIRY, EGG, GLUTEN, TREE_NUT, PEANUT, SOY, HONEY, GELATIN; dietary labels come from these |
 | createdAt / updatedAt | Instant                  | automatic timestamps                                                                                                                                                 |
 
@@ -344,49 +360,72 @@ Indexed on `(ingredient_id, recorded_at)`. Built with `IngredientPrice.builder(i
 
 ### history
 
-**RecipeHistory** (`recipe_history`): immutable. `id`, `user` (FK), `recipe` (FK), `servedAt` (passed in, not automatic). Indexed on `(user_id, served_at)`. Powers the repeat-avoidance window and variety analytics.
+**RecipeHistory** (`recipe_history`): immutable. `id`, `user` (FK), `recipe` (FK), `servedAt` (passed in, not automatic). Indexed on `(user_id, served_at)`. Written by the weekly job once a plan's week has ended (one row per selection, dated noon on its cook day in the user's timezone); with earlier plans' cook dates it feeds the repeat-avoidance window.
 
 ### mealplan
 
+A plan is a week of **selections** (recipe choices, each cooked once and eaten over one or more days) with a dated **calendar** of planned meals under them. Lock, swap and regenerate act on selections. The full design is in the Forkast Meal Plan Generator Plan doc.
+
 **MealPlan** (`meal_plans`)
 
-| Field                 | Type                   | Notes                                                      |
-| --------------------- | ---------------------- | ---------------------------------------------------------- |
-| id                    | UUID                   | PK                                                         |
-| user                  | User                   | FK, not null                                               |
-| weekStartDate         | LocalDate              | not null, not updatable                                    |
-| budgetTarget          | BigDecimal(10,2)       | nullable; snapshot of the weekly budget at generation time |
-| mealPrepMode          | boolean                | column `is_meal_prep_mode`, default false                  |
-| plannedMeals          | List\<PlannedMeal>     | returned sorted Monday to Sunday, breakfast to dinner      |
-| groceryItems          | List\<GroceryListItem> |                                                            |
-| createdAt / updatedAt | Instant                | automatic timestamps                                       |
+| Field                 | Type                   | Notes                                                                                         |
+| --------------------- | ---------------------- | --------------------------------------------------------------------------------------------- |
+| id                    | UUID                   | PK                                                                                            |
+| user                  | User                   | FK, not null                                                                                  |
+| weekStartDate         | LocalDate              | not null, not updatable; the user's plan start day; the plan runs 7 days (`getWeekEndDate()`) |
+| budgetTarget          | BigDecimal(10,2)       | nullable; snapshot of the weekly budget at generation; edits hold the plan to it              |
+| mealPrepMode          | boolean                | column `is_meal_prep_mode`; snapshot of `prefersMealPrep`                                     |
+| source                | PlanSource             | `AUTO` (weekly job) or `MANUAL` (asked for)                                                   |
+| generationSeed        | Long                   | the Random seed of the last draw, so it can be rebuilt                                        |
+| generatedAt           | Instant                | when it was last drawn                                                                        |
+| usageCost             | BigDecimal(10,2)       | what the week's meals use (sum of selection costs)                                            |
+| groceryCost           | BigDecimal(10,2)       | what the shopping trip costs (whole packages; pantry staples at usage cost)                   |
+| overBudget            | boolean                | groceryCost (usageCost until there's a list) over budgetTarget; set by `setCosts`             |
+| openMeals             | int                    | slot-days no recipe covers (a count of 1, or too few recipes)                                 |
+| historyRecordedAt     | Instant                | nullable; when the weekly job wrote its recipe_history (V10)                                  |
+| selections            | List\<PlanSelection>   | returned by slot, then position                                                               |
+| groceryItems          | List\<GroceryListItem> |                                                                                               |
+| createdAt / updatedAt | Instant                | automatic timestamps                                                                          |
 
-Unique on `(user_id, week_start_date)`: one plan per user per week. `clearGroceryList()` supports regenerating the list after meals change.
+Unique on `(user_id, week_start_date)`: one plan per user per week. `getPlannedMeals()` flattens every selection's calendar rows by date, breakfast to dinner.
 
-**PlannedMeal** (`planned_meals`)
+**PlanSelection** (`plan_selections`): one recipe choice.
 
-| Field             | Type                | Notes                          |
-| ----------------- | ------------------- | ------------------------------ |
-| id                | UUID                | PK                             |
-| mealPlan          | MealPlan            | FK, not null                   |
-| recipe            | Recipe              | FK, not null; swappable        |
-| dayOfWeek         | java.time.DayOfWeek | stored as string               |
-| mealSlot          | MealSlot            | `BREAKFAST`, `LUNCH`, `DINNER` |
-| portionMultiplier | BigDecimal(5,2)     | positive, default 1            |
+| Field             | Type               | Notes                                                                  |
+| ----------------- | ------------------ | ---------------------------------------------------------------------- |
+| id                | UUID               | PK                                                                     |
+| mealPlan          | MealPlan           | FK, not null, cascade                                                  |
+| recipe            | Recipe             | FK, not null; changed by `assignRecipe` (swap, regenerate)             |
+| mealSlot          | MealSlot           | `BREAKFAST`, `LUNCH`, `DINNER`                                         |
+| position          | int                | 1..n within the slot, in date order                                    |
+| startDate         | LocalDate          | the cook day                                                           |
+| daysCovered       | int                | 1 to 7 (the layout keeps it to 3, or 4 for low counts)                 |
+| servings          | int                | household x meals eaten (a leftover lunch adds one household)          |
+| portionMultiplier | BigDecimal(6,3)    | servings / the recipe's base servings; exact, rounded only for display |
+| estimatedCost     | BigDecimal(10,2)   | cost per serving x servings                                            |
+| locked            | boolean            | a locked selection keeps its recipe when the plan is regenerated       |
+| meals             | List\<PlannedMeal> | its calendar rows                                                      |
 
-Unique on `(meal_plan_id, day_of_week, meal_slot)`: one recipe per slot. `moveTo(day, slot)` relocates a meal. In meal-prep mode, the generator will derive `portionMultiplier` as `householdServingSize × daysCovered ÷ baseServings`.
+Unique on `(meal_plan_id, meal_slot, position)`. `hasStarted(today)` is true from its cook day: past and current meals are never changed.
+
+**PlannedMeal** (`planned_meals`, rebuilt in V9): one calendar row. `id`, `mealPlan` (FK, cascade), `selection` (FK, cascade), `mealDate`, `mealSlot`, `leftover` (false on the cook day). Unique on `(meal_plan_id, meal_date, meal_slot)`. A dinner selection can own the next day's lunch row, so the row's slot can differ from its selection's. `getRecipe()` comes from the selection.
 
 **GroceryListItem** (`grocery_list_items`)
 
-| Field         | Type             | Notes                                                  |
-| ------------- | ---------------- | ------------------------------------------------------ |
-| id            | UUID             | PK                                                     |
-| mealPlan      | MealPlan         | FK, not null                                           |
-| ingredient    | Ingredient       | FK, not null                                           |
-| totalAmount   | BigDecimal(10,3) | positive; grows via `addAmount()` when aggregating     |
-| unit          | String           | not null                                               |
-| estimatedCost | BigDecimal(10,2) | nullable until priced; non-negative                    |
-| purchased     | boolean          | default false; `markPurchased()` / `markUnpurchased()` |
+| Field         | Type             | Notes                                                                     |
+| ------------- | ---------------- | ------------------------------------------------------------------------- |
+| id            | UUID             | PK; kept when the list is rebuilt, so the app's ticks survive a swap      |
+| mealPlan      | MealPlan         | FK, not null                                                              |
+| ingredient    | Ingredient       | FK, not null                                                              |
+| totalAmount   | BigDecimal(10,3) | positive; exact (grams for weights)                                       |
+| unit          | String           | `g` for combined weights, else the recipe unit (`count`, `can`)           |
+| estimatedCost | BigDecimal(10,2) | what the line adds to the grocery cost; null when it can't be priced      |
+| packageCount  | Integer          | whole packages to buy; null for by-weight items and lines with no product |
+| packageLabel  | String           | the Kroger product and size                                               |
+| packagePrice  | BigDecimal(10,2) | per package, or per lb for by-weight items; null = estimate               |
+| pantry        | boolean          | a pantry staple: listed apart, counted at usage cost                      |
+| needToBuy     | boolean          | the user needs this staple, so it counts at its full package price        |
+| purchased     | boolean          | default false; `markPurchased()` / `markUnpurchased()`                    |
 
 Unique on `(meal_plan_id, ingredient_id, unit)`, so shared ingredients combine into one line.
 
@@ -394,43 +433,45 @@ Unique on `(meal_plan_id, ingredient_id, unit)`, so shared ingredients combine i
 
 Entity methods only touch data the entity (and its loaded associations) already holds. Anything that needs a repository, `PasswordEncoder`, or external API belongs in a service, because Hibernate creates entities outside Spring's bean lifecycle.
 
-| Entity            | Implemented                                                                                                                            | Planned                                                                                   |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Recipe            | `getTotalTimeMinutes()`, add/remove for steps, ingredients, labels, `setSource()`, `setNutrition()`, `setMealPrepScore()`, `setCost()` | `scaleIngredientsTo(servings)`, `nutritionPerServing()`, `matchesAllRestrictions(labels)` |
-| RecipeIngredient  | `matchIngredient(ingredient, score)`, `flagForReview(score)`, `unmatchIngredient()`                                                    | `scaledAmount(multiplier)`, `convertTo(unit)`, `nutritionContribution()`                  |
-| Ingredient        | `addPortion()`, `removePortion()`, `replacePortions()`, `addAlias()`, `replaceTags()`                                                  | `gramsForPortion(description)`, `gramWeightForUnit(unit)`                                 |
-| IngredientPrice   | `builder(...)`, `manual(...)`, `hasUnitPrice()`                                                                                        |                                                                                           |
-| IngredientProduct | `activate()`, `deactivate()`, `setLabel()`                                                                                             |                                                                                           |
-| UserPreferences   | `replaceDietaryRestrictions()`, `replaceMealSlots()`, `setWeeklyBudget()` (normalized to 2 decimals)                                   | `hasNutritionConstraints()`, `isCompatibleWith(recipe)`, `perMealBudget(mealCount)`       |
-| MealPlan          | `getEstimatedTotalCost()`, `isOverBudget()`, `clearGroceryList()`, add/remove helpers                                                  | `totalNutrition()`                                                                        |
-| PlannedMeal       | `moveTo(day, slot)`                                                                                                                    | `scaledServings()`, `nutritionTotal()`                                                    |
-| GroceryListItem   | `addAmount()`, `markPurchased()`, `markUnpurchased()`                                                                                  |                                                                                           |
-| User              | `changePassword()`, `changeEmail()`, `markVerified()`, `recordLogin()`                                                                 |                                                                                           |
-| RefreshToken      | `isExpired(now)`                                                                                                                       |                                                                                           |
-| AuthCode          | `isExpired(now)`, `isLocked(max)`, `recordFailedAttempt()`                                                                             |                                                                                           |
+| Entity            | Implemented                                                                                                                                                                       | Planned                                                                                   |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Recipe            | `getTotalTimeMinutes()`, add/remove for steps, ingredients, labels, `setSource()`, `setNutrition()`, `setMealPrepScore()`, `setCost()`                                            | `scaleIngredientsTo(servings)`, `nutritionPerServing()`, `matchesAllRestrictions(labels)` |
+| RecipeIngredient  | `matchIngredient(ingredient, score)`, `flagForReview(score)`, `unmatchIngredient()`                                                                                               | `scaledAmount(multiplier)`, `convertTo(unit)`, `nutritionContribution()`                  |
+| Ingredient        | `addPortion()`, `removePortion()`, `replacePortions()`, `addAlias()`, `replaceTags()`                                                                                             | `gramsForPortion(description)`, `gramWeightForUnit(unit)`                                 |
+| IngredientPrice   | `builder(...)`, `manual(...)`, `hasUnitPrice()`                                                                                                                                   |                                                                                           |
+| IngredientProduct | `activate()`, `deactivate()`, `setLabel()`                                                                                                                                        |                                                                                           |
+| UserPreferences   | `replaceDietaryRestrictions()`, `replaceMealSlots()`, `setWeeklyBudget()` (normalized to 2 decimals)                                                                              | `hasNutritionConstraints()`, `isCompatibleWith(recipe)`, `perMealBudget(mealCount)`       |
+| MealPlan          | `addSelection()`, `recordGeneration(seed, at)`, `setCosts(usage, grocery, openMeals)`, `markHistoryRecorded()`, `getPlannedMeals()`, `getWeekEndDate()`, grocery add/remove/clear | `totalNutrition()`                                                                        |
+| PlanSelection     | `assignRecipe(recipe, servings, multiplier, cost)`, `addMeal(date, slot, leftover)`, `lock()`/`unlock()`, `hasStarted(today)`, `getLastMealDate()`                                |                                                                                           |
+| PlannedMeal       | `getRecipe()` (through its selection)                                                                                                                                             | `nutritionTotal()`                                                                        |
+| GroceryListItem   | `updateAmount()`, `addAmount()`, `setPackage()`, `setPantry()`, `setNeedToBuy()`, `markPurchased()`, `markUnpurchased()`                                                          |                                                                                           |
+| User              | `changePassword()`, `changeEmail()`, `markVerified()`, `recordLogin()`, `setTimezone()`, `getZoneId()`                                                                            |                                                                                           |
+| RefreshToken      | `isExpired(now)`                                                                                                                                                                  |                                                                                           |
+| AuthCode          | `isExpired(now)`, `isLocked(max)`, `recordFailedAttempt()`                                                                                                                        |                                                                                           |
 
 Optional ingredients (`RecipeIngredient.optional = true`) will be excluded from grocery aggregation, cost totals, and nutrition totals, and listed separately as optional additions.
 
 ## Repositories
 
-| Repository                    | Custom queries                                                                                                                                                                          |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| UserRepository                | `findByEmail`, `existsByEmail`                                                                                                                                                          |
-| UserPreferencesRepository     | `findByUserId`, `existsByUserId`                                                                                                                                                        |
-| DietaryLabelRepository        | `findAllByOrderByNameAsc`, `findByNameIgnoreCase`                                                                                                                                       |
-| RecipeRepository              | `findByNameContainingIgnoreCase`, `existsBySourceUrl`, `findAllIds`, `JpaSpecificationExecutor` for search, `findWithLabelsByIdIn` and `findWithIngredientsById` (fetch joins)          |
-| IngredientRepository          | `findByFdcId`, `findByNameIgnoreCase`, `findByName`, `findMostSimilar` (native, trigram similarity across names and aliases)                                                            |
-| IngredientAliasRepository     | `findByAlias`                                                                                                                                                                           |
-| ReviewLineRepository (ingest) | `findNeedsReview` (paged JPQL that builds `ReviewLineResponse` directly), `findByNeedsReviewTrueAndParsedName`, `findAllRecipeIds`                                                      |
-| IngredientPriceRepository     | `findFirstByIngredientIdOrderByRecordedAtDesc`, `findByIngredientIdOrderByRecordedAtDesc`, `findByIngredientIds` (one query for many ingredients), the import's duplicate checks        |
-| IngredientProductRepository   | `findActiveWithIngredient(source)` (fetch join, for the refresh), `findByIngredientIdAndSource`, `findByIngredientIdAndSourceAndExternalId`, `findByActiveFalse`                        |
-| FavoriteRepository            | `existsByUserIdAndRecipeId`, `deleteByUserIdAndRecipeId`, `findFavoritedRecipeIds` (one query per page), `findRecipeIdsNewestFirst`, `insertIfAbsent` (native `on conflict do nothing`) |
-| RecipeHistoryRepository       | `findTop20ByUserIdOrderByServedAtDesc`, `findByUserIdAndServedAtAfter`, `findRecentRecipeIds` (JPQL, for the planner)                                                                   |
-| MealPlanRepository            | `findByUserIdAndWeekStartDate`, `existsByUserIdAndWeekStartDate`, `findByUserIdOrderByWeekStartDateDesc`                                                                                |
-| RefreshTokenRepository        | `findByTokenHash`, `deleteAllByUserId` (single `DELETE`)                                                                                                                                |
-| AuthCodeRepository            | `findByUserIdAndType`, `deleteByUserIdAndType` (single `DELETE`)                                                                                                                        |
+| Repository                    | Custom queries                                                                                                                                                                                                                                                                        |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| UserRepository                | `findByEmail`, `existsByEmail`                                                                                                                                                                                                                                                        |
+| UserPreferencesRepository     | `findByUserId`, `existsByUserId`, `findAllWithUser` (fetch join, for the weekly job)                                                                                                                                                                                                  |
+| DietaryLabelRepository        | `findAllByOrderByNameAsc`, `findByNameIgnoreCase`                                                                                                                                                                                                                                     |
+| RecipeRepository              | `findByNameContainingIgnoreCase`, `existsBySourceUrl`, `findAllIds`, `JpaSpecificationExecutor` for search, `findWithLabelsByIdIn` and `findWithIngredientsById` (fetch joins)                                                                                                        |
+| IngredientRepository          | `findByFdcId`, `findByNameIgnoreCase`, `findByName`, `findMostSimilar` (native, trigram similarity across names and aliases)                                                                                                                                                          |
+| IngredientAliasRepository     | `findByAlias`                                                                                                                                                                                                                                                                         |
+| ReviewLineRepository (ingest) | `findNeedsReview` (paged JPQL that builds `ReviewLineResponse` directly), `findByNeedsReviewTrueAndParsedName`, `findAllRecipeIds`                                                                                                                                                    |
+| IngredientPriceRepository     | `findFirstByIngredientIdOrderByRecordedAtDesc`, `findByIngredientIdOrderByRecordedAtDesc`, `findByIngredientIds` (one query for many ingredients), the import's duplicate checks                                                                                                      |
+| IngredientProductRepository   | `findActiveWithIngredient(source)` (fetch join, for the refresh), `findByIngredientIdAndSource`, `findByIngredientIdAndSourceAndExternalId`, `findByActiveFalse`                                                                                                                      |
+| FavoriteRepository            | `existsByUserIdAndRecipeId`, `deleteByUserIdAndRecipeId`, `findFavoritedRecipeIds` (one query per page), `findRecipeIdsNewestFirst`, `insertIfAbsent` (native `on conflict do nothing`)                                                                                               |
+| RecipeHistoryRepository       | `findTop20ByUserIdOrderByServedAtDesc`, `findByUserIdAndServedAtAfter`, `findRecentRecipeIds`, `findLastServed` (latest row per recipe, for the planner)                                                                                                                              |
+| MealPlanRepository            | `findByUserIdAndWeekStartDate`, `existsByUserIdAndWeekStartDate`, `findByUserIdOrderByWeekStartDateDesc`, `findByUserId` (paged), `findByIdAndUserId` (owner only), the plan covering a date, `findLastPlannedDates` (latest cook date per recipe), `findIdsWithoutHistoryStartingBy` |
+| GroceryListItemRepository     | `findByIdAndMealPlanUserId` (owner only)                                                                                                                                                                                                                                              |
+| RefreshTokenRepository        | `findByTokenHash`, `deleteAllByUserId` (single `DELETE`)                                                                                                                                                                                                                              |
+| AuthCodeRepository            | `findByUserIdAndType`, `deleteByUserIdAndType` (single `DELETE`)                                                                                                                                                                                                                      |
 
-Child entities (RecipeStep, RecipeIngredient, IngredientPortion, PlannedMeal, GroceryListItem) have no repositories; they are saved through their parent via cascade.
+Child entities (RecipeStep, RecipeIngredient, IngredientPortion, PlanSelection, PlannedMeal) have no repositories; they are saved through their parent via cascade. GroceryListItem is saved the same way, and has a repository only so one line can be found by id.
 
 ## Services
 
@@ -448,10 +489,7 @@ Built:
 - `RecipeQueryService`: search, detail with scaling, the favorites list, and `requireVisible` (404 for a missing or restricted recipe).
 - `FavoriteService`: idempotent add and remove.
 - `CurrentPriceService`, `RecipeCostService`, `PriceImportService`, `ProductMappingService`, `KrogerRefreshService`: see Pricing.
-
-Planned:
-
-- `MealPlanGeneratorService`: the budget-aware weekly planner, and the grocery list.
+- `MealPlanService`, `MealPlanEditService`, `GroceryListService`, `WeeklyPlanWorker`: see Meal Planning.
 
 ## Recipe Ingestion
 
@@ -559,6 +597,43 @@ Prices come from one store, Kroger On the Rhine in Cincinnati (`01400513`), as o
 
 **Product mapping.** `data_pipeline/find_product.py` searches Kroger, writes the best guess per ingredient to `kroger_products.csv` for review, and posts it to `/api/admin/prices/products` (see [../data_pipeline/README.md](../data_pipeline/README.md#prices)).
 
+## Meal Planning
+
+Every route needs a Bearer token, and someone else's plan or grocery line is a 404, like a missing one. The full design, with the decisions behind it, is in the Forkast Meal Plan Generator Plan doc.
+
+**Slot fit.** `SlotClassifier` scores every recipe 0 to 100 for breakfast, lunch and dinner from its category tags, name and keywords; it runs on ingest and reprocess. A side dish, sauce or dressing scores 0 whatever else it's tagged; desserts and snacks only when no meal tag comes with them. A meal the site names outright (Breakfast, Lunch, Dinner) gets at least 60.
+
+**Generating** (`MealPlanService.generate`, `PlanGenerator`). The generator is plain Java fed by `RecipeOptionLoader`, so every rule is unit-tested without a database:
+
+1. **Lay out the week** (`WeekLayout`): each slot's count of recipes is split into consecutive runs, longest first (3 dinners: 3, 2 and 2 days). Runs are at most 3 days; a count too low to cover the week stretches to 4 days, and a count of 1 leaves 3 days open. With leftovers for lunch, each dinner also covers the next day's lunch and lunch recipes fill the rest.
+2. **Pool candidates** (hard filters): the user's dietary restrictions, a known cost, a slot score of 50 or more, calories within the per-meal limit (unknown calories are left out when there's a limit), not served within the repeat window, and for a 4-day run a meal-prep score of 70 or more. A slot with too few recipes readmits the oldest-served first.
+3. **Draw** weighted at random from the plan's seed, longest runs first, no recipe twice in a week. `CandidateScorer` multiplies slot fit, nutrition fit, a leftovers factor (meal-prep score), cost against the budget share, favorites (x1.5), recently served (x0.7) and incomplete cost (x0.85). A run nothing can fill is left open.
+4. **Fit the budget**: while usage cost is over 90% of the weekly budget, the unlocked pick furthest over its share is swapped for the best-weighted cheaper recipe. A plan that still can't fit is saved and flagged, never refused.
+5. **Save** selections with one calendar row per meal, and build the grocery list.
+
+"Last served" is the later of the user's newest `recipe_history` row and the recipe's newest cook date in their earlier plans.
+
+**Grocery list** (`GroceryListBuilder`, `GroceryListService`). Each selection's required, matched lines are scaled by its portion multiplier; weights add up per ingredient in grams, and counts with no weight on file keep their own line. Each line is bought from the ingredient's active Kroger product that's cheapest for the amount needed, in whole packages (up to 3% over a package still counts as that package); by-weight items cost exactly what's needed. Pantry staples count at what the week uses unless marked "need to buy", and lines with no product count at usage cost as an estimate. Water and ice are left off. The list is rebuilt in place after every edit, so line ids, `purchased` and `needToBuy` survive.
+
+**Editing** (`MealPlanEditService`). Lock, swap, suggestions and regenerate act on one selection or all of them; a selection whose cook day is today or earlier is never changed (409). A user's own pick must pass the hard filters except the repeat window. Every edit recalculates usage cost and rebuilds the grocery list, and holds the plan to the budget it was made with.
+
+**Weekly job** (`WeeklyPlanJob`, hourly). Makes next week's plan (`AUTO`) for every user whose local time is 11pm or later the night before their plan start day, who has a meal slot and no plan for that week yet. Only that last hour counts, so deleting a fresh plan doesn't bring it back. Then it writes `recipe_history` for plans whose week has ended everywhere (start date at least 8 days ago, UTC), once per plan. Each user and each plan is its own transaction.
+
+**Settings** (`forkast.planner.*`, all with defaults):
+
+| Property                 | Default        | Meaning                                                            |
+| ------------------------ | -------------- | ------------------------------------------------------------------ |
+| `max-run-days`           | `3`            | A recipe is eaten by the second day after it's cooked              |
+| `stretch-run-days`       | `4`            | The longest a run gets when the count can't cover the week         |
+| `stretch-min-meal-prep`  | `70`           | Only recipes that keep fill a stretched run                        |
+| `budget-margin`          | `0.90`         | Usage cost must fit this share of the budget (packages cost more)  |
+| `leftover-base`          | `0.40`         | Leftovers factor = base + (1 - base) x meal-prep score / 100       |
+| `favorite-boost`         | `1.5`          |                                                                    |
+| `recent-factor`          | `0.70`         | Served within twice the repeat window                              |
+| `incomplete-cost-factor` | `0.85`         |                                                                    |
+| `generate-at`            | `23:00`        | Local time the weekly plan is made, the night before the start day |
+| `cron`                   | `0 20 * * * *` | When the job runs (minute 20 of every hour); `-` turns it off      |
+
 ## Authentication
 
 Short-lived JWT access tokens plus hashed, database-stored refresh tokens, one per device. The full design and its reasoning are in the Forkast Auth Plan doc.
@@ -583,48 +658,52 @@ Short-lived JWT access tokens plus hashed, database-stored refresh tokens, one p
 
 ## API Routes
 
-| Method | Path                                                                                 | Auth    | Handler                   | Status                                                                                                       |
-| ------ | ------------------------------------------------------------------------------------ | ------- | ------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| GET    | /api/health                                                                          | Public  | HealthController          | **live**                                                                                                     |
-| GET    | /api/dietary-labels                                                                  | Public  | DietaryLabelController    | **live**                                                                                                     |
-| POST   | /api/auth/signup                                                                     | Public  | AuthController            | **live** (201)                                                                                               |
-| POST   | /api/auth/verify-email                                                               | Public  | AuthController            | **live**                                                                                                     |
-| POST   | /api/auth/resend-verification                                                        | Public  | AuthController            | **live** (202)                                                                                               |
-| POST   | /api/auth/login                                                                      | Public  | AuthController            | **live**                                                                                                     |
-| POST   | /api/auth/refresh                                                                    | Public  | AuthController            | **live**                                                                                                     |
-| POST   | /api/auth/logout                                                                     | Public  | AuthController            | **live** (204)                                                                                               |
-| POST   | /api/auth/forgot-password                                                            | Public  | AuthController            | **live** (202)                                                                                               |
-| POST   | /api/auth/reset-password                                                             | Public  | AuthController            | **live**                                                                                                     |
-| PATCH  | /api/auth/password                                                                   | Bearer  | AuthController            | **live**                                                                                                     |
-| POST   | /api/auth/email-change                                                               | Bearer  | AuthController            | **live** (202)                                                                                               |
-| POST   | /api/auth/email-change/confirm                                                       | Bearer  | AuthController            | **live**                                                                                                     |
-| GET    | /api/users/me                                                                        | Bearer  | UserController            | **live**                                                                                                     |
-| DELETE | /api/users/me                                                                        | Bearer  | UserController            | **live** (204)                                                                                               |
-| PATCH  | /api/users/me                                                                        | Bearer  | UserController            | **live** (first and/or last name)                                                                            |
-| GET    | /api/users/me/preferences                                                            | Bearer  | PreferencesController     | **live** (404 until set up)                                                                                  |
-| POST   | /api/users/me/preferences                                                            | Bearer  | PreferencesController     | **live** (201; 409 if already set up)                                                                        |
-| PUT    | /api/users/me/preferences                                                            | Bearer  | PreferencesController     | **live** (replaces all fields; `null` = no limit)                                                            |
-| GET    | /api/recipes?q=&labels=&minProtein=&maxCalories=&maxTime=&maxCost=&sort=&page=&size= | Bearer  | RecipeController          | **live** (page of summaries with `flags`, `favorite` and cost; `sort=cost` cheapest first)                   |
-| GET    | /api/recipes/{id}?servings=                                                          | Bearer  | RecipeController          | **live** (scaled detail with `estimatedCost`; 404 if missing or restricted)                                  |
-| PUT    | /api/recipes/{id}/favorite                                                           | Bearer  | FavoriteController        | **live** (204, idempotent)                                                                                   |
-| DELETE | /api/recipes/{id}/favorite                                                           | Bearer  | FavoriteController        | **live** (204, idempotent)                                                                                   |
-| GET    | /api/users/me/favorites?page=&size=                                                  | Bearer  | FavoriteController        | **live** (newest first)                                                                                      |
-| POST   | /api/admin/ingredients/import                                                        | API key | AdminIngredientController | **live** (`{ingredients: [...]}`, up to 50; `{created, updated}`)                                            |
-| POST   | /api/admin/recipes/ingest                                                            | API key | AdminRecipeController     | **live** (`{recipes: [...]}`, up to 25; `{created, skippedDuplicate, failed, needsReview}`)                  |
-| GET    | /api/admin/recipe-ingredients/needs-review?page=&size=                               | API key | AdminReviewController     | **live** (`{items, page, size, total}`)                                                                      |
-| PATCH  | /api/admin/recipe-ingredients/{id}                                                   | API key | AdminReviewController     | **live** (`{ingredientId, saveAlias}`; `{id, ingredientName, alsoMatched}`)                                  |
-| POST   | /api/admin/recipes/reprocess?rematchAll=                                             | API key | AdminReviewController     | **live** (`{recipes, linesReparsed, newlyMatched, stillNeedsReview, failed}`)                                |
-| POST   | /api/admin/prices/import                                                             | API key | AdminPriceController      | **live** (`{prices: [...]}`, up to 200; `{imported, skipped, failed, recipesRecosted}`)                      |
-| POST   | /api/admin/prices/products                                                           | API key | AdminPriceController      | **live** (`{products: [...]}`, up to 500; `{created, updated, unchanged, failed}`)                           |
-| POST   | /api/admin/prices/refresh                                                            | API key | AdminPriceController      | **live** (re-prices every active Kroger product; `{products, priced, noUnitPrice, failed, recipesRecosted}`) |
-| POST   | /api/admin/prices/recalculate                                                        | API key | AdminPriceController      | **live** (`{recipesRecosted}`)                                                                               |
-| POST   | /api/meal-plans/generate                                                             | Bearer  | MealPlanController        | planned                                                                                                      |
-| GET    | /api/meal-plans                                                                      | Bearer  | MealPlanController        | planned                                                                                                      |
-| GET    | /api/meal-plans/{id}                                                                 | Bearer  | MealPlanController        | planned                                                                                                      |
-| GET    | /api/meal-plans/{id}/calendar                                                        | Bearer  | MealPlanController        | planned                                                                                                      |
-| DELETE | /api/meal-plans/{id}                                                                 | Bearer  | MealPlanController        | planned                                                                                                      |
-| GET    | /api/meal-plans/{id}/grocery-list                                                    | Bearer  | GroceryListController     | planned                                                                                                      |
-| PATCH  | /api/grocery-list-items/{id}                                                         | Bearer  | GroceryListController     | planned                                                                                                      |
+| Method | Path                                                                                 | Auth    | Handler                   | Status                                                                                                                                                                                               |
+| ------ | ------------------------------------------------------------------------------------ | ------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | /api/health                                                                          | Public  | HealthController          | **live**                                                                                                                                                                                             |
+| GET    | /api/dietary-labels                                                                  | Public  | DietaryLabelController    | **live**                                                                                                                                                                                             |
+| POST   | /api/auth/signup                                                                     | Public  | AuthController            | **live** (201)                                                                                                                                                                                       |
+| POST   | /api/auth/verify-email                                                               | Public  | AuthController            | **live**                                                                                                                                                                                             |
+| POST   | /api/auth/resend-verification                                                        | Public  | AuthController            | **live** (202)                                                                                                                                                                                       |
+| POST   | /api/auth/login                                                                      | Public  | AuthController            | **live**                                                                                                                                                                                             |
+| POST   | /api/auth/refresh                                                                    | Public  | AuthController            | **live**                                                                                                                                                                                             |
+| POST   | /api/auth/logout                                                                     | Public  | AuthController            | **live** (204)                                                                                                                                                                                       |
+| POST   | /api/auth/forgot-password                                                            | Public  | AuthController            | **live** (202)                                                                                                                                                                                       |
+| POST   | /api/auth/reset-password                                                             | Public  | AuthController            | **live**                                                                                                                                                                                             |
+| PATCH  | /api/auth/password                                                                   | Bearer  | AuthController            | **live**                                                                                                                                                                                             |
+| POST   | /api/auth/email-change                                                               | Bearer  | AuthController            | **live** (202)                                                                                                                                                                                       |
+| POST   | /api/auth/email-change/confirm                                                       | Bearer  | AuthController            | **live**                                                                                                                                                                                             |
+| GET    | /api/users/me                                                                        | Bearer  | UserController            | **live**                                                                                                                                                                                             |
+| DELETE | /api/users/me                                                                        | Bearer  | UserController            | **live** (204)                                                                                                                                                                                       |
+| PATCH  | /api/users/me                                                                        | Bearer  | UserController            | **live** (first and/or last name, `timezone`)                                                                                                                                                        |
+| GET    | /api/users/me/preferences                                                            | Bearer  | PreferencesController     | **live** (404 until set up)                                                                                                                                                                          |
+| POST   | /api/users/me/preferences                                                            | Bearer  | PreferencesController     | **live** (201; 409 if already set up)                                                                                                                                                                |
+| PUT    | /api/users/me/preferences                                                            | Bearer  | PreferencesController     | **live** (replaces all fields; `null` = no limit)                                                                                                                                                    |
+| GET    | /api/recipes?q=&labels=&minProtein=&maxCalories=&maxTime=&maxCost=&sort=&page=&size= | Bearer  | RecipeController          | **live** (page of summaries with `flags`, `favorite` and cost; `sort=cost` cheapest first)                                                                                                           |
+| GET    | /api/recipes/{id}?servings=                                                          | Bearer  | RecipeController          | **live** (scaled detail with `estimatedCost`; 404 if missing or restricted)                                                                                                                          |
+| PUT    | /api/recipes/{id}/favorite                                                           | Bearer  | FavoriteController        | **live** (204, idempotent)                                                                                                                                                                           |
+| DELETE | /api/recipes/{id}/favorite                                                           | Bearer  | FavoriteController        | **live** (204, idempotent)                                                                                                                                                                           |
+| GET    | /api/users/me/favorites?page=&size=                                                  | Bearer  | FavoriteController        | **live** (newest first)                                                                                                                                                                              |
+| POST   | /api/admin/ingredients/import                                                        | API key | AdminIngredientController | **live** (`{ingredients: [...]}`, up to 50; `{created, updated}`)                                                                                                                                    |
+| POST   | /api/admin/recipes/ingest                                                            | API key | AdminRecipeController     | **live** (`{recipes: [...]}`, up to 25; `{created, skippedDuplicate, failed, needsReview}`)                                                                                                          |
+| GET    | /api/admin/recipe-ingredients/needs-review?page=&size=                               | API key | AdminReviewController     | **live** (`{items, page, size, total}`)                                                                                                                                                              |
+| PATCH  | /api/admin/recipe-ingredients/{id}                                                   | API key | AdminReviewController     | **live** (`{ingredientId, saveAlias}`; `{id, ingredientName, alsoMatched}`)                                                                                                                          |
+| POST   | /api/admin/recipes/reprocess?rematchAll=                                             | API key | AdminReviewController     | **live** (`{recipes, linesReparsed, newlyMatched, stillNeedsReview, failed}`)                                                                                                                        |
+| POST   | /api/admin/prices/import                                                             | API key | AdminPriceController      | **live** (`{prices: [...]}`, up to 200; `{imported, skipped, failed, recipesRecosted}`)                                                                                                              |
+| POST   | /api/admin/prices/products                                                           | API key | AdminPriceController      | **live** (`{products: [...]}`, up to 500; `{created, updated, unchanged, failed}`)                                                                                                                   |
+| POST   | /api/admin/prices/refresh                                                            | API key | AdminPriceController      | **live** (re-prices every active Kroger product; `{products, priced, noUnitPrice, failed, recipesRecosted}`)                                                                                         |
+| POST   | /api/admin/prices/recalculate                                                        | API key | AdminPriceController      | **live** (`{recipesRecosted}`)                                                                                                                                                                       |
+| POST   | /api/meal-plans/generate                                                             | Bearer  | MealPlanController        | **live** (`{weekStart?}`, default the next plan start day; 201 with the plan; 409 if the week has one; 422 without preferences or meal slots; 400 for a week that's not on the start day or is over) |
+| GET    | /api/meal-plans?page=&size=                                                          | Bearer  | MealPlanController        | **live** (summaries, newest week first)                                                                                                                                                              |
+| GET    | /api/meal-plans/current                                                              | Bearer  | MealPlanController        | **live** (the plan covering today in the user's timezone; 404 if none)                                                                                                                               |
+| GET    | /api/meal-plans/{id}                                                                 | Bearer  | MealPlanController        | **live** (selections, `days` calendar, `open` meals, costs, budget, `overBudget`)                                                                                                                    |
+| DELETE | /api/meal-plans/{id}                                                                 | Bearer  | MealPlanController        | **live** (204)                                                                                                                                                                                       |
+| POST   | /api/meal-plans/{id}/regenerate                                                      | Bearer  | MealPlanController        | **live** (redraws unlocked selections that haven't started; 409 if there are none)                                                                                                                   |
+| PATCH  | /api/meal-plans/{id}/selections/{selectionId}                                        | Bearer  | MealPlanController        | **live** (`{locked}`; the plan)                                                                                                                                                                      |
+| POST   | /api/meal-plans/{id}/selections/{selectionId}/swap                                   | Bearer  | MealPlanController        | **live** (`{recipeId}` to use it, no body to pick one; 400 if it can't fill the meal, 409 if already in the plan or the meal has started)                                                            |
+| GET    | /api/meal-plans/{id}/selections/{selectionId}/suggestions                            | Bearer  | MealPlanController        | **live** (up to 5 recipes, best first, with `estimatedCost` and `costChange`)                                                                                                                        |
+| GET    | /api/meal-plans/{id}/grocery-list                                                    | Bearer  | GroceryListController     | **live** (`toBuy` and `pantry` lines with packages and costs, `unlistedLines`; built on first read for older plans)                                                                                  |
+| PATCH  | /api/grocery-list-items/{id}                                                         | Bearer  | GroceryListController     | **live** (`{purchased?, needToBuy?}`; 204; `needToBuy` only for pantry staples)                                                                                                                      |
 
 Controllers stay thin (bind, validate, delegate to a service). Success responses return the DTO with an explicit status; errors return ProblemDetail. Recipe routes are Bearer-only, covered by `SecurityConfig`'s authenticated default. Admin routes require the `X-Admin-Key` header: `ApiKeyAuthenticationFilter` compares it in constant time and grants `ROLE_ADMIN`, and `/api/admin/**` requires that role, so a user's access token gets 403.
 
@@ -635,12 +714,14 @@ Controllers stay thin (bind, validate, delegate to a service). Success responses
 - [x] Schema is managed by Flyway migrations, with Hibernate in `validate` mode.
 - [x] `Recipe` source and image columns added in V6; ingestion dedupes on `sourceUrl`.
 - [x] Units: a normalized `Unit` enum, stored as its lowercase name.
-- [ ] Round `portionMultiplier` quantities (e.g. 2.33 eggs) at read time in the service, or store pre-rounded?
-- [ ] Allow more than one recipe per meal slot (main + side)? Currently one per slot.
-- [ ] Normalize `weekStartDate` to Monday in the service?
+- [x] `portionMultiplier` and grocery amounts are stored exact and rounded only for display.
+- [ ] Allow more than one recipe per meal slot (main + side)? One per slot in v1; detecting recipes that need a side is listed in the Meal Plan Generator Plan doc.
+- [x] `weekStartDate` is the user's own plan start day; a plan runs 7 days from it.
 - [x] Auth adapted from the existing Express flow for mobile: emailed codes instead of links, refresh token in the body, per-device sessions, account deletion instead of deactivation.
 - [x] Meal choices stored as slot to distinct-recipes-per-week counts; per-user plan start day; meal prep is a preference that weights a per-recipe score. Full design in the Forkast Users and Preferences Plan doc.
-- [ ] Meal plans: replace `planned_meals` with `plan_selections` + dated `planned_meals` to support lock, swap and multi-day recipes.
+- [x] Meal plans: `plan_selections` + dated `planned_meals` (V9) support lock, swap, multi-day recipes and leftover lunches.
+- [ ] Remember which pantry staples a user keeps, so they stop showing as "check your pantry"? Out of v1.
+- [ ] Push notifications when the weekly plan is ready? Out of v1.
 - [x] `meal_prep_score` added in V6, computed by `MealPrepClassifier` at ingestion.
 - [ ] Catalog revisit after a larger scrape: new rows (white wine, pecorino, capers, olives, pine nuts...), aliases for pasta shapes and oils, and cooked versions of rice, pasta and grains ("cooked white rice" currently matches raw rice).
 - [ ] Use gram weights recipes give in parentheses ("1 cup (240g)") instead of portion lookups.

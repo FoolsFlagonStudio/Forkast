@@ -49,6 +49,11 @@ public class RecipeCostCalculator {
      */
     private static final Set<String> FREE = Set.of("water", "ice");
 
+    /** Water and ice: never priced, and never on a grocery list. */
+    public static boolean isFree(Ingredient ingredient) {
+        return ingredient != null && FREE.contains(ingredient.getName().toLowerCase(Locale.ROOT));
+    }
+
     private final UnitConverter unitConverter;
 
     public RecipeCostCalculator(UnitConverter unitConverter) {
@@ -70,7 +75,7 @@ public class RecipeCostCalculator {
                 continue;
             }
             Ingredient ingredient = line.ingredient();
-            if (ingredient != null && FREE.contains(ingredient.getName().toLowerCase(Locale.ROOT))) {
+            if (isFree(ingredient)) {
                 continue; // free, but not "priced": water alone shouldn't make a cost of $0.00
             }
             Optional<BigDecimal> cost = ingredient == null ? Optional.empty()

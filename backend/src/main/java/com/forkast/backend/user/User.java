@@ -11,13 +11,17 @@ import jakarta.persistence.Table;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.DateTimeException;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.UUID;
 
 @Entity
 @Table(name = "users")
 
 public class User {
+
+    public static final String DEFAULT_TIMEZONE = "America/New_York";
 
     // ---------- id ----------
 
@@ -50,6 +54,12 @@ public class User {
 
     @Column(name = "last_login_at")
     private Instant lastLoginAt;
+
+    /**
+     * IANA zone (America/New_York): when "11pm before the plan start day" happens
+     */
+    @Column(nullable = false, length = 64)
+    private String timezone = DEFAULT_TIMEZONE;
 
     // ---------- timestamps ----------
 
@@ -126,6 +136,24 @@ public class User {
 
     public Instant getLastLoginAt() {
         return lastLoginAt;
+    }
+
+    public String getTimezone() {
+        return timezone;
+    }
+
+    public ZoneId getZoneId() {
+        return ZoneId.of(timezone);
+    }
+
+    /** Must be a zone Java knows, like America/New_York or Europe/London. */
+    public void setTimezone(String timezone) {
+        String zone = requireText(timezone, "timezone");
+        try {
+            this.timezone = ZoneId.of(zone).getId();
+        } catch (DateTimeException e) {
+            throw new IllegalArgumentException("Unknown timezone '" + zone + "'");
+        }
     }
 
     public boolean isPremium() {

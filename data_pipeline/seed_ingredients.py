@@ -161,6 +161,7 @@ def build_payload(row, food):
         "name": row["name"].strip().lower(),
         "aliases": split_list(row.get("aliases")),
         "tags": split_list(row.get("tags")),
+        "pantryStaple": (row.get("pantry") or "").strip().lower() == "true",
         **extract_macros(food),
         "portions": extract_portions(food),
     }

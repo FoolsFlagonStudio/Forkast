@@ -13,38 +13,40 @@ import com.forkast.backend.mealplan.MealSlot;
 import com.forkast.backend.user.UserPreferences;
 
 public record PreferencesResponse(
-        BigDecimal weeklyBudget,
-        Integer householdServingSize,
-        Integer maxCaloriesPerMeal,
-        Integer maxCaloriesPerDay,
-        Integer proteinTargetGrams,
-        Integer carbsTargetGrams,
-        Integer fatTargetGrams,
-        Integer repeatAvoidanceDays,
-        DayOfWeek planStartDay,
-        boolean prefersMealPrep,
-        List<DietaryLabelResponse> dietaryRestrictions,
-        Map<MealSlot, Integer> mealSlots,
-        Instant updatedAt) {
-    public static PreferencesResponse from(UserPreferences preferences) {
-        List<DietaryLabelResponse> restrictions = preferences.getDietaryRestrictions().stream()
-                .sorted(Comparator.comparing(DietaryLabel::getName))
-                .map(DietaryLabelResponse::from)
-                .toList();
+                BigDecimal weeklyBudget,
+                Integer householdServingSize,
+                Integer maxCaloriesPerMeal,
+                Integer maxCaloriesPerDay,
+                Integer proteinTargetGrams,
+                Integer carbsTargetGrams,
+                Integer fatTargetGrams,
+                Integer repeatAvoidanceDays,
+                DayOfWeek planStartDay,
+                boolean prefersMealPrep,
+                boolean leftoversForLunch,
+                List<DietaryLabelResponse> dietaryRestrictions,
+                Map<MealSlot, Integer> mealSlots,
+                Instant updatedAt) {
+        public static PreferencesResponse from(UserPreferences preferences) {
+                List<DietaryLabelResponse> restrictions = preferences.getDietaryRestrictions().stream()
+                                .sorted(Comparator.comparing(DietaryLabel::getName))
+                                .map(DietaryLabelResponse::from)
+                                .toList();
 
-        return new PreferencesResponse(
-                preferences.getWeeklyBudget(),
-                preferences.getHouseholdServingSize(),
-                preferences.getMaxCaloriesPerMeal(),
-                preferences.getMaxCaloriesPerDay(),
-                preferences.getProteinTargetGrams(),
-                preferences.getCarbsTargetGrams(),
-                preferences.getFatTargetGrams(),
-                preferences.getRepeatAvoidanceDays(),
-                preferences.getPlanStartDay(),
-                preferences.isPrefersMealPrep(),
-                restrictions,
-                Map.copyOf(preferences.getMealSlots()),
-                preferences.getUpdatedAt());
-    }
+                return new PreferencesResponse(
+                                preferences.getWeeklyBudget(),
+                                preferences.getHouseholdServingSize(),
+                                preferences.getMaxCaloriesPerMeal(),
+                                preferences.getMaxCaloriesPerDay(),
+                                preferences.getProteinTargetGrams(),
+                                preferences.getCarbsTargetGrams(),
+                                preferences.getFatTargetGrams(),
+                                preferences.getRepeatAvoidanceDays(),
+                                preferences.getPlanStartDay(),
+                                preferences.isPrefersMealPrep(),
+                                preferences.isLeftoversForLunch(),
+                                restrictions,
+                                Map.copyOf(preferences.getMealSlots()),
+                                preferences.getUpdatedAt());
+        }
 }

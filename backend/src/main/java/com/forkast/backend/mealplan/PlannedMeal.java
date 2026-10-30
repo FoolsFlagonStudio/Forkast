@@ -1,10 +1,8 @@
 package com.forkast.backend.mealplan;
 
 import static com.forkast.backend.common.ValidationUtils.requireNonNull;
-import static com.forkast.backend.common.ValidationUtils.requirePositive;
 
-import java.math.BigDecimal;
-import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.util.UUID;
 
 import com.forkast.backend.recipe.Recipe;
@@ -22,9 +20,19 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
+/**
+ * One meal on the calendar: a date and a slot, eaten from a selection. The
+ * first day of a
+ * selection is cooked; the rest are leftovers. The slot usually matches the
+ * selection's, but a
+ * dinner's leftovers can be the next day's lunch.
+ *
+ * Created through {@link PlanSelection#addMeal}, which sets both the selection
+ * and the plan.
+ */
 @Entity
-@Table(name = "planned_meals", uniqueConstraints = @UniqueConstraint(columnNames = { "meal_plan_id", "day_of_week",
-        "meal_slot" }))
+@Table(name = "planned_meals", uniqueConstraints = @UniqueConstraint(name = "uk_planned_meals", columnNames = {
+        "meal_plan_id", "meal_date", "meal_slot" }))
 public class PlannedMeal {
 
     // ---------- id ----------
@@ -35,26 +43,25 @@ public class PlannedMeal {
 
     // ---------- columns ----------
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "day_of_week", nullable = false, length = 10)
-    private DayOfWeek dayOfWeek;
+    @Column(name = "meal_date", nullable = false, updatable = false)
+    private LocalDate mealDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "meal_slot", nullable = false, length = 10)
+    @Column(name = "meal_slot", nullable = false, length = 10, updatable = false)
     private MealSlot mealSlot;
 
-    @Column(name = "portion_multiplier", nullable = false, precision = 5, scale = 2)
-    private BigDecimal portionMultiplier = BigDecimal.ONE;
+    @Column(nullable = false, updatable = false)
+    private boolean leftover;
 
     // ---------- relationships ----------
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "meal_plan_id", nullable = false)
+    @JoinColumn(name = "meal_plan_id", nullable = false, updatable = false)
     private MealPlan mealPlan;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "recipe_id", nullable = false)
-    private Recipe recipe;
+    @JoinColumn(name = "selection_id", nullable = false, updatable = false)
+    private PlanSelection selection;
 
     // ---------- constructors ----------
 
@@ -62,55 +69,42 @@ public class PlannedMeal {
         // required by JPA
     }
 
-    public PlannedMeal(Recipe recipe, DayOfWeek dayOfWeek, MealSlot mealSlot) {
-        setRecipe(recipe);
-        moveTo(dayOfWeek, mealSlot);
-    }
-
-    // ---------- behavior ----------
-
-    /** Move this meal to a different day and/or slot. */
-    public void moveTo(DayOfWeek dayOfWeek, MealSlot mealSlot) {
-        this.dayOfWeek = requireNonNull(dayOfWeek, "dayOfWeek");
+    PlannedMeal(PlanSelection selection, LocalDate mealDate, MealSlot mealSlot, boolean leftover) {
+        this.selection = requireNonNull(selection, "selection");
+        this.mealPlan = requireNonNull(selection.getMealPlan(), "selection's meal plan");
+        this.mealDate = requireNonNull(mealDate, "mealDate");
         this.mealSlot = requireNonNull(mealSlot, "mealSlot");
+        this.leftover = leftover;
     }
 
-    // ---------- getters / setters ----------
+    // ---------- getters ----------
 
     public UUID getId() {
         return id;
     }
 
-    public DayOfWeek getDayOfWeek() {
-        return dayOfWeek;
+    public LocalDate getMealDate() {
+        return mealDate;
     }
 
     public MealSlot getMealSlot() {
         return mealSlot;
     }
 
-    public BigDecimal getPortionMultiplier() {
-        return portionMultiplier;
+    public boolean isLeftover() {
+        return leftover;
     }
 
-    public void setPortionMultiplier(BigDecimal portionMultiplier) {
-        this.portionMultiplier = requirePositive(portionMultiplier, "portionMultiplier");
+    public PlanSelection getSelection() {
+        return selection;
     }
 
+    /** The recipe eaten at this meal, from its selection. */
     public Recipe getRecipe() {
-        return recipe;
-    }
-
-    /** Swap in a different recipe for this slot. */
-    public void setRecipe(Recipe recipe) {
-        this.recipe = requireNonNull(recipe, "recipe");
+        return selection.getRecipe();
     }
 
     public MealPlan getMealPlan() {
         return mealPlan;
     }
-
-    void setMealPlan(MealPlan mealPlan) {
-        this.mealPlan = mealPlan;
-    } // package-private
 }
